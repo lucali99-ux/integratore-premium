@@ -93,7 +93,7 @@ export default function Philosophy() {
         />
 
         <div className="shell relative z-10 flex flex-col items-center text-center">
-          <p className="type-label mb-10 text-ash">la formula</p>
+          <p data-reveal className="type-label mb-10 text-ash">la formula</p>
 
           <p
             data-copy

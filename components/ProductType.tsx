@@ -86,12 +86,12 @@ export default function ProductType() {
 
         {/* Micro-copy in basso: stessa gerarchia dell'hero */}
         <div className="relative z-20 mt-12 grid gap-8 md:mt-20 md:grid-cols-[1fr_auto] md:items-end">
-          <p className="type-label max-w-[46ch] leading-relaxed text-ink/70">
+          <p data-reveal className="type-label max-w-[46ch] leading-relaxed text-ink/70">
             4,5 grammi di polvere micronizzata che si sciolgono in acqua senza
             residuo — nessuna capsula da deglutire, nessun dosatore da lavare,
             nessuna scusa per saltarla
           </p>
-          <p className="type-meta text-ash">lat.// magnesium marinum</p>
+          <p data-reveal className="type-meta text-ash">lat.// magnesium marinum</p>
         </div>
       </div>
     </section>

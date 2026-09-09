@@ -137,6 +137,21 @@ html.lenis body {
   visibility: hidden;
 }
 
+/* ============================================================
+   Cursore custom
+   La classe è montata da CustomCursor solo quando il cursore è
+   effettivamente attivo (puntatore fine, niente reduced-motion):
+   senza JavaScript, o su touch, il cursore di sistema resta.
+   Gli elementi interattivi vanno elencati perché lo stylesheet
+   dello user agent imposta cursor:pointer su di loro.
+   ============================================================ */
+html.cursore-custom,
+html.cursore-custom a,
+html.cursore-custom button,
+html.cursore-custom [role="button"] {
+  cursor: none;
+}
+
 /* La capsula/pill: forma ricorrente del riferimento, usata come
    fondale delle sezioni scure e come shape della CTA. */
 .capsule {

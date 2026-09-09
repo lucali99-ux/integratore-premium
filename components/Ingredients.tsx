@@ -101,10 +101,10 @@ export default function Ingredients() {
       <div className="shell">
         {/* Intestazione: label + titolo, come nelle altre sezioni */}
         <div className="mb-14 flex flex-col gap-6 md:mb-20 md:flex-row md:items-end md:justify-between">
-          <h2 className="type-display max-w-[14ch] text-xxl">
+          <h2 data-reveal className="type-display max-w-[14ch] text-xxl">
             sei componenti, nessun riempitivo
           </h2>
-          <p className="type-label max-w-[38ch] leading-relaxed text-paper/60">
+          <p data-reveal className="type-label max-w-[38ch] leading-relaxed text-paper/60">
             ogni dose dichiarata è quella che trovi nella bustina — nessuna
             miscela proprietaria dietro cui nascondere i grammi
           </p>

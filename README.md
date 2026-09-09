@@ -28,6 +28,8 @@ lib/
   scroll.ts         registro Lenis + blocco/sblocco dello scroll
 components/
   CinemaIntro.tsx   intro "a feritoia" (bande nere che si ritraggono)
+  CustomCursor.tsx  cursore custom (punto + anello, mix-blend-difference)
+  ScrollReveal.tsx  reveal staggered globale via ScrollTrigger.batch
   SmoothScroll.tsx  Lenis sincronizzato con il ticker GSAP
   Header.tsx        header fisso (Server Component, mix-blend-difference)
   ScrollProgress.tsx barra fissa in basso: valori + % di scroll
@@ -119,6 +121,47 @@ fluidità, perché lo scrub è già limitato dal frame rate del browser.
 
 `scripts/generate-frames.mjs` resta come fallback: rigenera i placeholder
 geometrici numerati se ti serve lavorare senza gli asset veri.
+
+---
+
+## Cursore custom
+
+`components/CustomCursor.tsx`. Un punto che segue il mouse quasi senza
+ritardo e un anello che lo insegue con inerzia: è lo scarto fra i due a dare
+la sensazione di peso. Sopra `a`, `button`, `[role="button"]` e
+`[data-cursor]` l'anello si allarga e il punto sparisce.
+
+- `mix-blend-difference`, come header e barra di progresso: si inverte da
+  solo su chiaro e su scuro, senza logica JS che tracci il fondo;
+- `gsap.quickTo` e non `gsap.to` dentro `pointermove`: quickTo riusa UN
+  tween e ne aggiorna il valore, invece di allocarne decine al secondo;
+- delegazione degli eventi su `document`: un listener solo, e funziona anche
+  sugli elementi che compaiono dopo (i callout della sequenza prodotto);
+- in `pointerout` si controlla `relatedTarget`: senza, il cursore sfarfalla
+  passando sopra il testo *dentro* un link;
+- non viene montato affatto su touch (`pointer: coarse`) né con
+  `prefers-reduced-motion`. La condizione è letta con `useSyncExternalStore`,
+  che dà lo snapshot server senza mismatch di idratazione e reagisce dal vivo
+  se colleghi un mouse o cambi l'impostazione di sistema;
+- il cursore di sistema è nascosto da una regola CSS condizionata alla classe
+  `.cursore-custom`, montata dal componente: senza JavaScript il puntatore
+  nativo resta.
+
+## Reveal staggered
+
+`components/ScrollReveal.tsx`. Anima ogni elemento marcato `data-reveal`
+quando entra nel viewport, scaglionando quelli che entrano insieme.
+
+Usa `ScrollTrigger.batch`, che raggruppa gli elementi entranti nella stessa
+finestra temporale e li anima con un unico stagger. Con uno ScrollTrigger per
+elemento si otterrebbero decine di trigger indipendenti, ognuno che parte per
+conto suo: niente stagger e molto più lavoro a ogni refresh.
+
+Attenzione al rapporto con la regola "un solo momento animato forte per
+sezione": questo **non** è quel momento. È un movimento di fondo volutamente
+corto (18 px, 0.6 s) riservato ai contenuti secondari — label, paragrafi,
+righe di dati. Headline e griglia ingredienti mantengono le loro animazioni
+dedicate, e non vanno marcate `data-reveal`.
 
 ---
 

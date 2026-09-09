@@ -90,7 +90,7 @@ export default function Results() {
       aria-label="Risultati del panel di test"
     >
       <div className="shell">
-        <p className="type-label mb-12 text-ash md:mb-16">volta score</p>
+        <p data-reveal className="type-label mb-12 text-ash md:mb-16">volta score</p>
 
         <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-20">
           {/* Il numero: unico punto della sezione in cui entra il lime */}
@@ -99,7 +99,7 @@ export default function Results() {
             <span className="mt-[0.12em] text-[0.34em] text-ink">%</span>
           </p>
 
-          <p className="max-w-[36ch] text-lg leading-snug text-ink/80 lg:mb-4 lg:text-xl">
+          <p data-reveal className="max-w-[36ch] text-lg leading-snug text-ink/80 lg:mb-4 lg:text-xl">
             degli atleti del panel riporta un recupero percepito migliore entro
             quattordici giorni di assunzione quotidiana.
             <span className="type-meta mt-4 block text-ash">
@@ -114,6 +114,7 @@ export default function Results() {
           {METRICS.map((metric) => (
             <li
               key={metric.label}
+              data-reveal
               className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-3 border-t border-line py-5 md:grid-cols-[minmax(0,26ch)_1fr_auto] md:py-6"
             >
               <span className="type-label">{metric.label}</span>

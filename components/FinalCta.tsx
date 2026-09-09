@@ -52,7 +52,7 @@ export default function FinalCta() {
       aria-label="Acquista"
     >
       <div className="shell">
-        <p className="type-label mb-12 text-ash md:mb-16">disponibile ora</p>
+        <p data-reveal className="type-label mb-12 text-ash md:mb-16">disponibile ora</p>
 
         <h2
           data-headline
@@ -65,14 +65,14 @@ export default function FinalCta() {
         <div className="mt-14 flex flex-col gap-10 md:mt-20 md:flex-row md:items-end md:justify-between">
           {/* Prezzo: due opzioni, gerarchia chiara */}
           <div className="flex flex-wrap items-end gap-x-12 gap-y-6">
-            <div>
+            <div data-reveal>
               <p className="type-label text-ash">confezione singola</p>
               <p className="type-display mt-2 text-lead">
                 39 €
               </p>
               <p className="type-meta mt-1 text-ash">30 bustine · 1,30 € a dose</p>
             </div>
-            <div>
+            <div data-reveal>
               <p className="type-label text-ash">abbonamento mensile</p>
               <p className="type-display mt-2 text-lead">
                 33 €
@@ -84,6 +84,7 @@ export default function FinalCta() {
           </div>
 
           <a
+            data-reveal
             href="#acquista"
             className="type-label capsule inline-flex shrink-0 items-center gap-3 bg-paper px-9 py-5 text-ink transition-colors duration-300 hover:bg-volt"
           >
@@ -92,7 +93,7 @@ export default function FinalCta() {
           </a>
         </div>
 
-        <p className="type-meta mt-12 text-ash">
+        <p data-reveal className="type-meta mt-12 text-ash">
           spedizione in 48h · reso entro 30 giorni · prodotto in italia
         </p>
       </div>
