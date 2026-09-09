@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VOLTA — sito di prodotto
 
-## Getting Started
+Pezzo espressivo "hero product brand" per un integratore fittizio di recupero
+sportivo (magnesio marino + elettroliti in bustine). Riferimento di direzione:
+`sofihealth.com`.
 
-First, run the development server:
+Stack: **Next.js 16** (App Router) · **Tailwind CSS v4** · **GSAP 3.15**
+(ScrollTrigger + SplitText) · **Lenis**.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # sviluppo
+npm run build   # build di produzione
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struttura
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+  layout.tsx        font, metadata, montaggio di SmoothScroll/Header/ScrollProgress/SideCta
+  page.tsx          ordine delle sezioni
+  globals.css       TUTTO il design system (token, registri tipografici, regole Lenis)
+lib/
+  animation.ts      registrazione plugin GSAP + hook useScene
+lib/
+  intro.ts          promessa condivisa: l'hero attende la fine dell'intro
+  scroll.ts         registro Lenis + blocco/sblocco dello scroll
+components/
+  CinemaIntro.tsx   intro "a feritoia" (bande nere che si ritraggono)
+  SmoothScroll.tsx  Lenis sincronizzato con il ticker GSAP
+  Header.tsx        header fisso (Server Component, mix-blend-difference)
+  ScrollProgress.tsx barra fissa in basso: valori + % di scroll
+  SideCta.tsx       tab CTA verticale sul bordo destro
+  Hero.tsx          §1 reveal char-by-char (load + scrub)
+  Philosophy.tsx    §2 sezione pinnata, testo che si riempie per parole
+  ProductType.tsx   §3a prodotto sovrapposto alla tipografia (parallasse)
+  ProductSequence.tsx §3b sequenza canvas pinnata + callout
+  Ingredients.tsx   §4 griglia formula (stagger reveal)
+  Results.tsx       §5 contatore + prima/dopo
+  FinalCta.tsx      §6 chiusura d'acquisto (reveal per righe)
+  Footer.tsx        valori del brand (Server Component)
+scripts/
+  generate-frames.mjs   generatore dei frame placeholder (fallback)
+  frames-from-video.mjs estrattore dei frame da un video di rotazione
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## L'intro "cinema"
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`components/CinemaIntro.tsx`. Schermo nero, una feritoia orizzontale che
+si apre a tre scatti, e dentro parole (`recupera`, `reintegra`,
+`naturalmente`) **tagliate dalle bande nere** sopra e sotto. All'ultimo
+scatto la feritoia si apre a tutto schermo sull'hero.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Cose da sapere se ci metti mano:
 
-## Deploy on Vercel
+- le aperture stanno in `APERTURE = [0.9, 0.75, 0.56]` — sono quanto resta
+  *coperto*. Valori alti di proposito: se la feritoia si apre troppo la
+  parola ci sta dentro intera e l'effetto sparisce;
+- le bande si muovono con `scaleY`, mai con `height`: la seconda farebbe un
+  layout per frame su due elementi a tutto schermo;
+- il fondo dell'overlay è lo stesso `paper` dell'hero, così l'apertura
+  finale non produce nessun lampo di colore;
+- l'hero **aspetta** l'intro tramite la promessa `introDone` di
+  `lib/intro.ts`: senza, la sua entrata si consumerebbe dietro al nero;
+- click o rotella saltano l'intro accelerando la timeline (`timeScale(7)`)
+  invece di saltare a `progress(1)`, così l'uscita resta un movimento e le
+  callback di chiusura girano nell'ordine giusto;
+- con `prefers-reduced-motion: reduce` l'intro non parte affatto e
+  `markIntroDone()` viene chiamata subito, quindi nessuno resta in attesa.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Durata: circa 5,6 secondi.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Gli asset del prodotto
+
+Generati con Higgsfield e installati in `public/product/`:
+
+| File | Cosa | Dove si usa |
+|---|---|---|
+| `pouch-cutout.png` | stick scontornato, canale alpha, ritagliato al bounding box | hero + sezione tipografica |
+| `pouch-scene.jpg` | scatto scenico su fondo chiaro con ombra lunga | riserva |
+| `pouch-dark.jpg` | scatto frontale su fondo scuro | fotogramma di partenza del video |
+
+Lo scontorno serve perché il beige dello scatto non coincide con il `paper`
+del sito: montando il rettangolo fotografico si vedrebbe il bordo. Con il PNG
+in alpha il prodotto galleggia su qualsiasi fondo, e l'ombra è una
+`drop-shadow` CSS — che segue la sagoma, a differenza di `box-shadow`.
+
+Hero e sezione tipografica usano `next/image` (con `priority` sull'hero, che
+è l'elemento LCP): conversione automatica in AVIF/WebP e dimensionamento per
+viewport. Era `<img>` finché gli asset erano SVG, formato per cui `next/image`
+richiede il flag di sicurezza `dangerouslyAllowSVG`.
+
+I bordi dei fotogrammi della sequenza vengono sfumati nel nero della sezione
+dentro `draw()` di `ProductSequence`, non con una mask CSS: il fondo dello
+studio nei frame va da `#0d1112` a `#242527`, e su mobile l'immagine non
+riempie il canvas — una mask sull'elemento cadrebbe nel punto sbagliato.
+
+### Rifare la sequenza di rotazione
+
+```bash
+node scripts/frames-from-video.mjs <video> 60 1200
+```
+
+Lo script calcola l'fps che distribuisce esattamente 60 fotogrammi sulla
+durata del video: estrarne "a caso" darebbe una rotazione che accelera e
+rallenta lungo lo scroll. Scrive `public/sequence/frame-001.jpg` …
+
+Se cambi numero di frame o formato, aggiorna `FRAME_COUNT` e `FRAME_EXT` in
+`components/ProductSequence.tsx`. Nient'altro: caricamento pigro, fit
+`contain`, gestione del DPI e scrub restano identici.
+
+Sopra i ~90 fotogrammi il peso cresce senza che l'occhio percepisca più
+fluidità, perché lo scrub è già limitato dal frame rate del browser.
+
+`scripts/generate-frames.mjs` resta come fallback: rigenera i placeholder
+geometrici numerati se ti serve lavorare senza gli asset veri.
+
+---
+
+## Regole del sistema
+
+**Un solo momento animato forte per sezione.** Se ne aggiungi uno, toglierne
+un altro nella stessa sezione.
+
+**Ogni scena dichiara due varianti.** `lib/animation.ts` espone `useScene`, che
+obbliga a scrivere sia `full` (l'animazione) sia `reduced` (lo stato finale
+statico). La variante `reduced` non deve mai limitarsi a "non animare": deve
+portare gli elementi dove sarebbero finiti. Verificato: con
+`prefers-reduced-motion: reduce` la pagina non ha nessun elemento a
+`opacity: 0` o `visibility: hidden`, il contatore mostra `87`, e non viene
+creato nessun pin né lo smooth scroll.
+
+**Il lime (`--color-volt`) è una risorsa scarsa.** Tre soli usi: il pallino
+meta dell'hero, l'hover delle CTA, il numero della sezione risultati. Il
+premium del riferimento nasce dall'assenza di colore: aggiungerne indebolisce
+tutto il resto.
+
+**Attenzione ai token `--text-*` in Tailwind v4.** Quel namespace *è* quello
+delle utility di dimensione: chiamare un token `--text-xl` sovrascrive il
+`text-xl` di Tailwind in tutto il progetto. Per questo la scala display usa
+`--text-mega`, `--text-xxl`, `--text-lead`, `--text-values`.
+
+---
+
+## Strumenti di debug (solo in sviluppo)
+
+In `development` vengono esposti su `window`: `__lenis`, `gsap`, `ScrollTrigger`.
+Servono a ispezionare un punto preciso della timeline dalla console:
+
+```js
+__lenis.scrollTo(5000, { immediate: true })
+ScrollTrigger.getAll().map(s => [s.trigger?.id, s.start, s.end, s.progress])
+```
+
+I rami sono racchiusi in `process.env.NODE_ENV === "development"` e non
+finiscono nel bundle di produzione.

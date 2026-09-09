@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   VOLTA — Design tokens
+   Riferimento: sofihealth.com — monocromia rigorosa, un solo
+   registro tipografico, la scala come unico effetto grafico.
+   ============================================================ */
+@theme {
+  /* --- Palette -------------------------------------------------
+     Monocroma per scelta: nel riferimento il "premium" nasce
+     dall'assenza di colore. Il lime è una risorsa scarsa, usata
+     in tre soli punti (progress bar, hover CTA, dato risultati). */
+  --color-paper: #f2f1ec; /* off-white caldo, mai bianco puro */
+  --color-ink: #0b0b0b; /* near-black, meno duro del #000 */
+  --color-coal: #161616; /* forma-capsula sulle sezioni scure */
+  --color-volt: #ccff00; /* accento chirurgico */
+  --color-ash: #8a8a82; /* label, meta, testo di servizio */
+  --color-line: #d9d8d1; /* hairline su paper */
+  --color-line-dark: #2a2a2a; /* hairline su ink */
+
+  /* --- Tipografia ---------------------------------------------- */
+  --font-display: var(--font-familjen), "Helvetica Neue", sans-serif;
+  --font-sans: var(--font-grotesk), system-ui, sans-serif;
+
+  /* Scala fluida: la headline occupa una frazione costante della
+     viewport a qualsiasi larghezza. In minuscolo servono valori
+     più alti che in maiuscolo, perché l'altezza-x è minore. */
+  /* 12vw è la misura ricavata dal riferimento: "better" (6 caratteri)
+     occupa ~37% della larghezza di viewport. Sopra questo valore le
+     parole italiane, più lunghe, andrebbero a capo. */
+  --text-mega: clamp(3.75rem, 12vw, 15rem);
+  --text-xxl: clamp(2.75rem, 8vw, 8.5rem);
+  /* ATTENZIONE: in Tailwind v4 --text-* È il namespace delle utility
+     di dimensione. Chiamare questo token "--text-xl" sovrascriveva il
+     text-xl di Tailwind (1.25rem → 4rem) rompendo ogni paragrafo che
+     lo usava. Da qui il nome "lead", che non collide con la scala. */
+  --text-lead: clamp(1.75rem, 4.2vw, 4rem);
+  --text-values: clamp(1.75rem, 5.5vw, 5rem);
+
+  --space-section: clamp(6rem, 14vh, 12rem);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   Base
+   ============================================================ */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: auto; /* lo scroll lo gestisce Lenis */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+}
+
+::selection {
+  background-color: var(--color-volt);
+  color: var(--color-ink);
+}
+
+/* ============================================================
+   Lenis (regole richieste dalla libreria, scritte a mano per
+   tenere tutto il CSS del progetto in un file solo)
+   ============================================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================================
+   Registri tipografici — solo due, come nel riferimento
+   ============================================================ */
+
+/* Display: minuscolo, stretto, compresso. NON maiuscolo:
+   il minuscolo alla scala gigante è ciò che distingue il
+   registro "premium" da quello "sportivo/brutalista". */
+.type-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 0.84;
+  letter-spacing: -0.035em;
+  /* Il leading sotto 1 taglia i discendenti (g, p, y): li recupero
+     con padding sul blocco, non aumentando il line-height. */
+  padding-bottom: 0.06em;
+}
+
+/* Meta: minuscolo spaziato, piccolo. Il contrappunto al display. */
+.type-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+/* Variante monospace-like per i dati tecnici (lat.//, percentuali) */
+.type-meta {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.shell {
+  width: 100%;
+  max-width: 100rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 3.5vw, 3rem);
+}
+
+/* SplitText: maschera per riga. overflow:clip + translateY sul
+   figlio = le lettere emergono da una linea invece di comparire. */
+.split-line {
+  overflow: clip;
+  padding-bottom: 0.1em; /* spazio per i discendenti dentro la maschera */
+}
+
+/* Anti-flash: rimosso via JS nello stesso layout effect in cui
+   GSAP applica lo stato iniziale (vedi lib/animation.ts). */
+[data-anim-hidden="true"] {
+  visibility: hidden;
+}
+
+/* La capsula/pill: forma ricorrente del riferimento, usata come
+   fondale delle sezioni scure e come shape della CTA. */
+.capsule {
+  border-radius: 9999px;
 }
