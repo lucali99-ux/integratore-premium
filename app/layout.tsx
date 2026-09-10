@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Familjen_Grotesk, Space_Grotesk } from "next/font/google";
 import CinemaIntro from "@/components/CinemaIntro";
+import CustomCursor from "@/components/CustomCursor";
 import SmoothScroll from "@/components/SmoothScroll";
 import Header from "@/components/Header";
 import ScrollProgress from "@/components/ScrollProgress";
+import ScrollReveal from "@/components/ScrollReveal";
 import SideCta from "@/components/SideCta";
 import "./globals.css";
 
@@ -44,11 +46,15 @@ export default function RootLayout({
       <body className="bg-paper text-ink antialiased">
         {/* Intro "cinema": sta sopra a tutto e si smonta da sola */}
         <CinemaIntro />
+        {/* Cursore custom: non si monta su touch né con reduced-motion */}
+        <CustomCursor />
         <SmoothScroll>
           <Header />
           {/* CTA persistente sul bordo destro (come il "shop sofi" del riferimento) */}
           <SideCta />
           <main>{children}</main>
+          {/* Reveal staggered di tutto ciò che è marcato data-reveal */}
+          <ScrollReveal />
           {/* Barra fissa: valori del brand + percentuale di scroll */}
           <ScrollProgress />
         </SmoothScroll>

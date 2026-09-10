@@ -395,7 +395,7 @@ export default function ProductSequence() {
           data-pin-content
           className="shell relative z-10 flex h-full flex-col pt-24 pb-24 md:pt-28"
         >
-          <p className="type-label text-ash">il prodotto</p>
+          <p data-reveal className="type-label text-ash">il prodotto</p>
 
           {/* Su mobile i callout stanno in colonna sotto il prodotto;
               da md in su si dispongono attorno all'inquadratura. */}

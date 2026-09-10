@@ -24,7 +24,7 @@ export default function Footer() {
             impilate, dove una riga sola sarebbe illeggibile. */}
         <div className="flex flex-col gap-8 sm:flex-row sm:flex-nowrap sm:items-end sm:gap-[clamp(1rem,3vw,3.5rem)]">
           {values.map(([word, label], index) => (
-            <div key={word} className="flex items-end gap-[clamp(1rem,3vw,3.5rem)]">
+            <div key={word} data-reveal className="flex items-end gap-[clamp(1rem,3vw,3.5rem)]">
               <div>
                 <p className="type-meta mb-2 text-ash">{label}</p>
                 <p className="type-display text-values whitespace-nowrap">
