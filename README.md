@@ -27,7 +27,9 @@ lib/
   intro.ts          promessa condivisa: l'hero attende la fine dell'intro
   scroll.ts         registro Lenis + blocco/sblocco dello scroll
 components/
-  CinemaIntro.tsx   intro "a feritoia" (bande nere che si ritraggono)
+  CinemaIntro.tsx   intro: apertura obliqua orizzontale
+  Athletes.tsx      prova sociale: citazione in scrub + tre ritratti
+  ZigZag.tsx        divisore dinamico (pattern SVG, colore da currentColor)
   CustomCursor.tsx  cursore custom (punto + anello, mix-blend-difference)
   ScrollReveal.tsx  reveal staggered globale via ScrollTrigger.batch
   SmoothScroll.tsx  Lenis sincronizzato con il ticker GSAP
@@ -49,20 +51,31 @@ scripts/
 
 ---
 
-## L'intro "cinema"
+## L'intro
 
-`components/CinemaIntro.tsx`. Schermo nero, una feritoia orizzontale che
-si apre a tre scatti, e dentro parole (`recupera`, `reintegra`,
-`naturalmente`) **tagliate dalle bande nere** sopra e sotto. All'ultimo
-scatto la feritoia si apre a tutto schermo sull'hero.
+`components/CinemaIntro.tsx`. Due pannelli neri separati da un **taglio
+obliquo** si aprono orizzontalmente a tre scatti, e nel varco scorrono le
+parole (`recupera`, `reintegra`, `naturalmente`), **tagliate dai pannelli**.
+All'ultimo scatto i pannelli escono e resta l'hero.
+
+Il taglio obliquo non è decorazione: la pagina di riferimento apre con bande
+orizzontali, e replicarle era una copia letterale. La diagonale dà lo stesso
+momento con una geometria propria, e introduce l'obliquità che poi torna nei
+divisori a zig-zag.
 
 Cose da sapere se ci metti mano:
 
-- le aperture stanno in `APERTURE = [0.9, 0.75, 0.56]` — sono quanto resta
-  *coperto*. Valori alti di proposito: se la feritoia si apre troppo la
-  parola ci sta dentro intera e l'effetto sparisce;
-- le bande si muovono con `scaleY`, mai con `height`: la seconda farebbe un
-  layout per frame su due elementi a tutto schermo;
+- `APERTURE = [0.24, 0.48, 0.72]` è l'ampiezza del varco in frazioni della
+  larghezza di viewport. Il primo valore mostra un frammento di parola,
+  l'ultimo quasi tutta: è la progressione che rende leggibile il gesto;
+- `SLANT` è l'inclinazione del taglio. È in percentuale dentro un
+  `clip-path`, quindi l'inclinazione visiva cambia con le proporzioni dello
+  schermo: il filetto lime che segue il taglio ricava il proprio angolo da
+  `window.innerWidth / innerHeight`, e va ricalcolato se tocchi SLANT;
+- i pannelli si muovono con `x` in pixel, mai con `width`: la seconda farebbe
+  un layout per frame su due elementi a tutto schermo;
+- il filetto lime sta FUORI dai pannelli: come loro figlio verrebbe tagliato
+  dal `clip-path` insieme al resto;
 - il fondo dell'overlay è lo stesso `paper` dell'hero, così l'apertura
   finale non produce nessun lampo di colore;
 - l'hero **aspetta** l'intro tramite la promessa `introDone` di
@@ -70,6 +83,9 @@ Cose da sapere se ci metti mano:
 - click o rotella saltano l'intro accelerando la timeline (`timeScale(7)`)
   invece di saltare a `progress(1)`, così l'uscita resta un movimento e le
   callback di chiusura girano nell'ordine giusto;
+- **il cursore custom non esiste finché l'intro non ha finito**: durante
+  l'apertura il puntatore serve solo a saltare, e un anello che insegue sopra
+  i pannelli distrae dal momento. `CustomCursor` aspetta `introDone`;
 - con `prefers-reduced-motion: reduce` l'intro non parte affatto e
   `markIntroDone()` viene chiamata subito, quindi nessuno resta in attesa.
 
@@ -235,6 +251,13 @@ portare gli elementi dove sarebbero finiti. Verificato: con
 `opacity: 0` o `visibility: hidden`, il contatore mostra `87`, e non viene
 creato nessun pin né lo smooth scroll.
 
+**I divisori sono a zig-zag, non righe dritte.** `components/ZigZag.tsx` usa
+un `<pattern>` SVG in coordinate utente, quindi si ripete da solo a qualsiasi
+larghezza e resta nitido a ogni densità. L'id del pattern viene da `useId`:
+sulla pagina ce ne sono sette, e con un id fisso punterebbero tutti al primo.
+Il colore arriva da `currentColor`, così lo stesso componente serve sezioni
+chiare e scure.
+
 **Non si clona la reference, si clonano i meccanismi.** Della pagina di
 riferimento si riprende *come si comporta* — cosa è pinnato, cosa è in scrub,
 come il testo si rivela, il ritmo delle sezioni. Non si riprendono le sue
@@ -243,7 +266,14 @@ capsula di sofi ed è stato sostituito con un reticolo di righe che si apre,
 che riprende invece le bande orizzontali dell'intro — il motivo proprio di
 questo sito.
 
-**Il lime (`--color-volt`) è una risorsa scarsa.** Tre soli usi: il pallino
+**Il lime va solo su forme piene, sulle sezioni chiare.** Su `#F2F1EC` il
+lime come colore di testo ha un contrasto pessimo: sulle sezioni chiare entra
+come punto, filetto o terminale di barra, mai come parola. Sulle sezioni
+scure funziona anche come testo, e lì marca le etichette di sezione, le
+parole-effetto e i dati delle card. L'unica eccezione su fondo chiaro è il
+numero dei risultati, che alla sua scala regge.
+
+**Il lime (`--color-volt`) resta un accento, non un colore di sistema.** Tre soli usi: il pallino
 meta dell'hero, l'hover delle CTA, il numero della sezione risultati. Il
 premium del riferimento nasce dall'assenza di colore: aggiungerne indebolisce
 tutto il resto.

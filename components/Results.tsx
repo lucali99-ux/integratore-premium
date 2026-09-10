@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { gsap, useScene } from "@/lib/animation";
+import ZigZag from "./ZigZag";
 
 /**
  * SEZIONE 5 — Risultati.
@@ -90,7 +91,15 @@ export default function Results() {
       aria-label="Risultati del panel di test"
     >
       <div className="shell">
-        <p data-reveal className="type-label mb-12 text-ash md:mb-16">volta score</p>
+        <p
+          data-reveal
+          className="type-label mb-12 flex items-center gap-2 text-ink md:mb-16"
+        >
+          {/* Su fondo chiaro il lime non regge come testo: entra come
+              forma piena accanto all'etichetta. */}
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-volt" />
+          volta score
+        </p>
 
         <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-20">
           {/* Il numero: unico punto della sezione in cui entra il lime */}
@@ -112,33 +121,43 @@ export default function Results() {
         {/* Prima / dopo */}
         <ul className="mt-16 md:mt-24">
           {METRICS.map((metric) => (
-            <li
-              key={metric.label}
-              data-reveal
-              className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-3 border-t border-line py-5 md:grid-cols-[minmax(0,26ch)_1fr_auto] md:py-6"
-            >
-              <span className="type-label">{metric.label}</span>
+            <li key={metric.label}>
+              {/* Divisore dinamico al posto della riga dritta */}
+              <ZigZag className="text-ink/30" />
 
-              {/* La barra rappresenta il valore "dopo".
-                  scaleX invece di width: nessun reflow durante la crescita. */}
-              <span className="col-span-2 h-[3px] w-full bg-line md:col-span-1">
-                <span
-                  data-bar
-                  className="block h-full bg-ink"
-                  style={{ width: `${metric.fill}%` }}
-                />
-              </span>
+              <div className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-3 py-5 md:grid-cols-[minmax(0,26ch)_1fr_auto] md:py-6">
+                <span className="type-label">{metric.label}</span>
 
-              <span className="type-meta flex items-baseline gap-3 justify-self-end">
-                <span className="text-ash line-through">{metric.before}</span>
-                <span aria-hidden className="text-ash">
-                  →
+                {/* La barra rappresenta il valore "dopo".
+                    scaleX invece di width: nessun reflow durante la crescita. */}
+                <span className="relative col-span-2 h-[3px] w-full bg-line md:col-span-1">
+                  <span
+                    data-bar
+                    className="relative block h-full bg-ink"
+                    style={{ width: `${metric.fill}%` }}
+                  >
+                    {/* Terminale lime: segna dove arriva il dato senza
+                        affidare il lime a del testo poco contrastato. */}
+                    <span
+                      aria-hidden
+                      className="absolute top-0 right-0 h-full w-2 bg-volt"
+                    />
+                  </span>
                 </span>
-                <span className="text-base">{metric.after}</span>
-              </span>
+
+                <span className="type-meta flex items-baseline gap-3 justify-self-end">
+                  <span className="text-ash line-through">{metric.before}</span>
+                  <span aria-hidden className="text-ash">
+                    →
+                  </span>
+                  <span className="text-base">{metric.after}</span>
+                </span>
+              </div>
             </li>
           ))}
+          <ZigZag className="text-ink/30" />
         </ul>
+
       </div>
     </section>
   );

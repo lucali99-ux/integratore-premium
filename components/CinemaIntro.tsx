@@ -6,38 +6,46 @@ import { markIntroDone } from "@/lib/intro";
 import { lockScroll, unlockScroll } from "@/lib/scroll";
 
 /**
- * INTRO "CINEMA".
+ * INTRO — apertura obliqua.
  *
- * Ricalca l'apertura del riferimento: schermo nero, si apre una
- * feritoia orizzontale che cresce a scatti, e dentro scorrono parole
- * TAGLIATE dalle bande nere sopra e sotto. All'ultimo scatto la
- * feritoia si apre a tutto schermo sull'hero.
+ * Due pannelli neri separati da un taglio diagonale si aprono
+ * ORIZZONTALMENTE a scatti, e nel varco che si allarga scorrono le
+ * parole, tagliate dai pannelti stessi. All'ultimo scatto i pannelli
+ * escono di scena e resta l'hero.
+ *
+ * Perché obliqua e orizzontale invece delle bande orizzontali del
+ * riferimento: quelle erano una copia letterale. Il taglio diagonale
+ * dà lo stesso momento — una feritoia che si apre e mozza il testo —
+ * con una geometria che appartiene a questo sito, e introduce
+ * l'obliquità che poi torna nei divisori a zig-zag delle sezioni.
  *
  * Scelte tecniche:
  *
- * - le bande si muovono con `scaleY`, non con `height`: scaleY resta
- *   sul compositor, height farebbe un layout per frame su due
- *   elementi a tutto schermo;
+ * - il taglio è un `clip-path` con vertici in percentuale, quindi
+ *   l'inclinazione resta la stessa a ogni proporzione di schermo;
  *
- * - le parole stanno SOTTO le bande, che quindi le mozzano. È questo
- *   il taglio che si vede nel riferimento, non un overflow:hidden;
+ * - i pannelli si muovono con `x` in pixel calcolati sulla larghezza
+ *   della viewport, non con `width`: la prima è una trasformazione
+ *   sul compositor, la seconda farebbe un layout per frame;
  *
- * - le lettere entrano con una rotazione crescente lungo la parola
- *   (rotate come funzione dell'indice): è ciò che produce l'arco;
+ * - le parole stanno SOTTO i pannelli, che quindi le mozzano. È il
+ *   taglio a rivelarle, non un'animazione di opacità;
  *
  * - il fondo dell'overlay è lo stesso `paper` dell'hero, così quando
- *   le bande si aprono del tutto non c'è nessun lampo di colore.
+ *   i pannelli escono non c'è nessun lampo di colore.
  */
 
 const WORDS = ["recupera", "reintegra", "naturalmente"];
 
 /**
- * Quanto resta coperto dalle bande a ogni scatto (1 = tutto nero).
- * Valori alti di proposito: nel riferimento la prima parola si legge
- * a metà, tagliata sopra e sotto. Se la feritoia si apre troppo la
- * parola ci sta dentro tutta e l'effetto "cinema" sparisce.
+ * Ampiezza del varco a ogni scatto, in frazione della larghezza di
+ * viewport. Il primo valore mostra un frammento di parola, l'ultimo
+ * quasi tutta: è la progressione che rende leggibile il gesto.
  */
-const APERTURE = [0.9, 0.75, 0.56];
+const APERTURE = [0.24, 0.48, 0.72];
+
+/** Inclinazione del taglio: scostamento orizzontale fra alto e basso. */
+const SLANT = 0.06;
 
 export default function CinemaIntro() {
   const root = useRef<HTMLDivElement>(null);
@@ -50,11 +58,24 @@ export default function CinemaIntro() {
     full: () => {
       lockScroll();
 
-      const bars = gsap.utils.toArray<HTMLElement>("[data-bar]");
+      const panels = gsap.utils.toArray<HTMLElement>("[data-panel]");
+      const edges = gsap.utils.toArray<HTMLElement>("[data-edge]");
       const words = gsap.utils.toArray<HTMLElement>("[data-word]");
       const splits = words.map((word) =>
         SplitText.create(word, { type: "chars" }),
       );
+
+      // Il bordo lime è ruotato per seguire il taglio. L'angolo dipende
+      // dalle proporzioni della finestra, quindi va calcolato: a parità
+      // di inclinazione percentuale, uno schermo largo dà un taglio più
+      // inclinato di uno stretto.
+      const angolo =
+        (Math.atan((SLANT * window.innerWidth) / window.innerHeight) * 180) /
+        Math.PI;
+      gsap.set(edges, { rotation: angolo });
+
+      const larghezza = window.innerWidth;
+      const scostamento = (frazione: number) => (larghezza * frazione) / 2;
 
       const tl = gsap.timeline({
         defaults: { ease: "expo.inOut" },
@@ -63,13 +84,16 @@ export default function CinemaIntro() {
         },
         onComplete: () => {
           unlockScroll();
-          markIntroDone(); // sblocca l'entrata dell'hero
+          markIntroDone(); // sblocca l'entrata dell'hero e il cursore
           setDone(true);
         },
       });
 
-      // Stato iniziale: schermo completamente nero, parole assenti.
-      gsap.set(bars, { scaleY: 1 });
+      // Stato iniziale: pannelli combacianti, parole assenti.
+      gsap.set(panels[0], { x: 0 });
+      gsap.set(panels[1], { x: 0 });
+      gsap.set(edges[0], { x: 0 });
+      gsap.set(edges[1], { x: 0 });
       gsap.set(words, { autoAlpha: 0 });
       splits.forEach((split) => gsap.set(split.chars, { autoAlpha: 0 }));
 
@@ -77,12 +101,16 @@ export default function CinemaIntro() {
 
       WORDS.forEach((_, i) => {
         const chars = splits[i].chars;
+        const d = scostamento(APERTURE[i]);
 
-        // 1. la feritoia si allarga di uno scatto
-        tl.to(bars, { scaleY: APERTURE[i], duration: 0.45 });
+        // 1. il varco si allarga di uno scatto
+        tl.to(panels[0], { x: -d, duration: 0.5 }, `passo${i}`)
+          .to(panels[1], { x: d, duration: 0.5 }, `passo${i}`)
+          .to(edges[0], { x: -d, duration: 0.5 }, `passo${i}`)
+          .to(edges[1], { x: d, duration: 0.5 }, `passo${i}`);
 
         // 2. la parola entra lettera per lettera, ad arco
-        tl.set(words[i], { autoAlpha: 1 }, "<0.1").fromTo(
+        tl.set(words[i], { autoAlpha: 1 }, `passo${i}+=0.1`).fromTo(
           chars,
           {
             autoAlpha: 0,
@@ -100,23 +128,36 @@ export default function CinemaIntro() {
             stagger: 0.03,
             transformOrigin: "50% 120%",
           },
-          "<",
+          `passo${i}+=0.1`,
         );
 
         // 3. breve tenuta, poi la parola esce verso l'alto
-        tl.to(chars, {
-          autoAlpha: 0,
-          yPercent: -55,
-          rotate: (index: number) => 8 + index * 1.5,
-          duration: 0.3,
-          ease: "power2.in",
-          stagger: 0.018,
-        }, `+=${i === WORDS.length - 1 ? 0.25 : 0.15}`);
+        tl.to(
+          chars,
+          {
+            autoAlpha: 0,
+            yPercent: -55,
+            rotate: (index: number) => 8 + index * 1.5,
+            duration: 0.3,
+            ease: "power2.in",
+            stagger: 0.018,
+          },
+          `+=${i === WORDS.length - 1 ? 0.25 : 0.15}`,
+        );
       });
 
-      // 4. apertura finale + dissolvenza dell'overlay sull'hero
-      tl.to(bars, { scaleY: 0, duration: 0.85 })
-        .to(root.current, { autoAlpha: 0, duration: 0.45, ease: "power2.out" }, "-=0.25");
+      // 4. apertura finale: i pannelli escono del tutto, poi
+      //    l'overlay si dissolve sull'hero.
+      const fuori = larghezza * 0.75;
+      tl.to(panels[0], { x: -fuori, duration: 0.85 }, "fine")
+        .to(panels[1], { x: fuori, duration: 0.85 }, "fine")
+        .to(edges[0], { x: -fuori, autoAlpha: 0, duration: 0.85 }, "fine")
+        .to(edges[1], { x: fuori, autoAlpha: 0, duration: 0.85 }, "fine")
+        .to(
+          root.current,
+          { autoAlpha: 0, duration: 0.45, ease: "power2.out" },
+          "fine+=0.6",
+        );
 
       return () => {
         splits.forEach((split) => split.revert());
@@ -136,8 +177,8 @@ export default function CinemaIntro() {
    * Salto dell'intro.
    *
    * Accelera SOLO la timeline locale invece di saltare a progress(1):
-   * così l'uscita resta un movimento (l'utente vede le bande aprirsi,
-   * non un taglio netto) e le callback di fine — sblocco dello scroll,
+   * così l'uscita resta un movimento (i pannelli si vedono aprire, non
+   * sparire di colpo) e le callback di fine — sblocco dello scroll,
    * markIntroDone, smontaggio — girano nell'ordine giusto.
    */
   const skip = useCallback(() => {
@@ -168,19 +209,40 @@ export default function CinemaIntro() {
         ))}
       </div>
 
-      {/* Le due bande: coprono le parole e si ritraggono a scatti.
-          transformOrigin agli estremi, così scaleY le fa rientrare
-          verso il bordo invece di rimpicciolirle al centro. */}
+      {/*
+        I due pannelli. Il clip-path li taglia lungo la stessa diagonale
+        — il vertice a 50%+SLANT in alto e 50%-SLANT in basso è
+        condiviso — così a riposo combaciano senza fessure.
+        Sono più larghi della viewport per non scoprire i bordi mentre
+        traslano.
+      */}
       <div
-        data-bar
-        className="absolute inset-x-0 top-0 h-1/2 bg-ink"
-        style={{ transformOrigin: "top center" }}
+        data-panel
+        className="absolute inset-y-0 -left-[10%] w-[120%] bg-ink"
+        style={{
+          clipPath: `polygon(0 0, ${50 + SLANT * 100}% 0, ${50 - SLANT * 100}% 100%, 0 100%)`,
+        }}
       />
       <div
-        data-bar
-        className="absolute inset-x-0 bottom-0 h-1/2 bg-ink"
-        style={{ transformOrigin: "bottom center" }}
+        data-panel
+        className="absolute inset-y-0 -right-[10%] w-[120%] bg-ink"
+        style={{
+          clipPath: `polygon(${50 + SLANT * 100}% 0, 100% 0, 100% 100%, ${50 - SLANT * 100}% 100%)`,
+        }}
       />
+
+      {/*
+        Bordo lime lungo il taglio. Sta FUORI dai pannelli: se fosse un
+        loro figlio verrebbe tagliato dal clip-path insieme al resto.
+        Altezza 200% perché la rotazione scopre gli angoli.
+      */}
+      {[0, 1].map((i) => (
+        <span
+          key={i}
+          data-edge
+          className="absolute top-1/2 left-1/2 h-[200%] w-px -translate-x-1/2 -translate-y-1/2 bg-volt"
+        />
+      ))}
     </div>
   );
 }

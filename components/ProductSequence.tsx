@@ -119,6 +119,21 @@ function fadeEdges(
   band(x, y + h, x, y + h - bottom, w, bottom); // basso
 }
 
+/**
+ * Inquadratura `contain`: il prodotto sta tutto dentro, anche sui
+ * formati stretti. Estratta perché ora serve in tre punti — i due
+ * fotogrammi della sfumatura e la costruzione della vignettatura.
+ */
+function inquadra(canvas: HTMLCanvasElement, image: HTMLImageElement) {
+  const scala = Math.min(
+    canvas.width / image.naturalWidth,
+    canvas.height / image.naturalHeight,
+  );
+  const w = image.naturalWidth * scala;
+  const h = image.naturalHeight * scala;
+  return { x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, w, h };
+}
+
 export default function ProductSequence() {
   const root = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -133,6 +148,18 @@ export default function ProductSequence() {
   const sequence = useRef<number[]>([]);
   const images = useRef<HTMLImageElement[]>([]);
   const position = useRef(0);
+
+  /**
+   * Vignettatura pre-disegnata in un canvas fuori schermo.
+   *
+   * Le quattro sfumature sui bordi non cambiano mai — dipendono solo
+   * dalla dimensione del canvas e dalle proporzioni dell'immagine — ma
+   * ridisegnarle a ogni fotogramma significa quattro riempimenti a
+   * gradiente su un buffer da 2880x1800. Costruita una volta per
+   * resize, resta un solo drawImage per fotogramma, e il tempo
+   * risparmiato paga la sfumatura fra fotogrammi qui sotto.
+   */
+  const vignettatura = useRef<HTMLCanvasElement | null>(null);
 
   const isReady = (image?: HTMLImageElement) =>
     Boolean(image?.complete && image.naturalWidth);
@@ -158,48 +185,82 @@ export default function ProductSequence() {
     return -1;
   }, []);
 
+  /** Ricostruisce la vignettatura. Da chiamare a ogni resize. */
+  const costruisciVignettatura = useCallback(() => {
+    const canvas = canvasRef.current;
+    const campione = images.current.find(isReady);
+    if (!canvas || !campione || !canvas.width) return;
+
+    const off =
+      vignettatura.current ??
+      (vignettatura.current = document.createElement("canvas"));
+    off.width = canvas.width;
+    off.height = canvas.height;
+    const octx = off.getContext("2d");
+    if (!octx) return;
+
+    const { x, y, w, h } = inquadra(canvas, campione);
+    fadeEdges(octx, x, y, w, h);
+  }, []);
+
   /**
-   * Disegna la posizione richiesta. `contain` e non `cover`: il
-   * prodotto deve stare tutto dentro l'inquadratura, anche sui
-   * formati stretti.
+   * Disegna la posizione richiesta, che è FRAZIONARIA.
+   *
+   * Il fotogramma intero viene disegnato pieno, e sopra gli si sfuma
+   * il successivo con opacità pari alla parte decimale. È la
+   * correzione della sensazione di scatto: con un indice arrotondato
+   * all'intero, scrollando piano l'immagine resta ferma per due o tre
+   * frame di rendering e poi salta — si vede la quantizzazione. Due
+   * fotogrammi adiacenti distano circa due gradi, quindi la
+   * sovrapposizione si legge come sfocatura di movimento, non come
+   * immagine doppia.
    */
   const draw = useCallback(
-    (index: number) => {
+    (valore: number) => {
       // La posizione richiesta viene memorizzata comunque, anche se il
       // fotogramma non c'è ancora: un resize successivo ridisegnerà
       // quello giusto una volta arrivato.
-      position.current = index;
+      position.current = valore;
 
       const canvas = canvasRef.current;
       if (!canvas) return;
-
-      const usable = nearestLoaded(index);
-      if (usable < 0) return;
-      const image = images.current[usable];
-
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const { width, height } = canvas; // dimensioni del buffer, non CSS
-      ctx.clearRect(0, 0, width, height);
+      const ultimo = images.current.length - 1;
+      if (ultimo < 0) return;
 
-      const scale = Math.min(
-        width / image.naturalWidth,
-        height / image.naturalHeight,
-      );
-      const w = image.naturalWidth * scale;
-      const h = image.naturalHeight * scale;
-      const x = (width - w) / 2;
-      const y = (height - h) / 2;
-      ctx.drawImage(image, x, y, w, h);
+      const base = Math.min(Math.max(Math.floor(valore), 0), ultimo);
+      const frazione = valore - Math.floor(valore);
 
-      // Il fondo dello studio nei fotogrammi va da #0d1112 in alto (di
-      // fatto il nero della sezione) a #242527 in basso, dove c'è il
-      // piano: senza intervento si vede il bordo dell'immagine.
-      // La sfumatura è disegnata sui bordi dell'IMMAGINE, non applicata
-      // come mask CSS all'elemento canvas: su mobile l'immagine non
-      // riempie il canvas, e la maschera cadrebbe nel punto sbagliato.
-      fadeEdges(ctx, x, y, w, h);
+      const primo = nearestLoaded(base);
+      if (primo < 0) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const disegna = (indice: number, opacita: number) => {
+        const image = images.current[indice];
+        const { x, y, w, h } = inquadra(canvas, image);
+        ctx.globalAlpha = opacita;
+        ctx.drawImage(image, x, y, w, h);
+        ctx.globalAlpha = 1;
+      };
+
+      disegna(primo, 1);
+
+      // Sotto il 2% la sovrapposizione non si vede e costa un
+      // drawImage: si salta.
+      if (frazione > 0.02) {
+        const successivo = nearestLoaded(Math.min(base + 1, ultimo));
+        if (successivo >= 0 && successivo !== primo) {
+          disegna(successivo, frazione);
+        }
+      }
+
+      // Il fondo dello studio nei fotogrammi va da #0d1112 in alto a
+      // #242527 in basso, dove c'è il piano: senza sfumatura si
+      // vedrebbe il bordo dell'immagine contro il nero della sezione.
+      if (vignettatura.current) ctx.drawImage(vignettatura.current, 0, 0);
     },
     [nearestLoaded],
   );
@@ -217,8 +278,9 @@ export default function ProductSequence() {
     const rect = canvas.getBoundingClientRect();
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
+    costruisciVignettatura();
     draw(position.current);
-  }, [draw]);
+  }, [draw, costruisciVignettatura]);
 
   // --- Caricamento pigro, a passate successive ---------------------
   useEffect(() => {
@@ -257,7 +319,12 @@ export default function ProductSequence() {
           });
           // Ridisegna man mano: durante le prime passate ogni nuovo
           // fotogramma può essere più vicino di quello ripiegato.
-          if (!cancelled) draw(position.current);
+          if (!cancelled) {
+            // La vignettatura ha bisogno di un'immagine per conoscere
+            // le proporzioni: al primo arrivo va costruita.
+            if (!vignettatura.current) costruisciVignettatura();
+            draw(position.current);
+          }
         }
       };
 
@@ -295,7 +362,7 @@ export default function ProductSequence() {
       observer.disconnect();
       resizeObserver.disconnect();
     };
-  }, [draw, resize]);
+  }, [draw, resize, costruisciVignettatura]);
 
   // --- Scena -------------------------------------------------------
   useScene(root, {
@@ -324,12 +391,13 @@ export default function ProductSequence() {
         state,
         {
           frame: last,
-          // snap all'intero: draw viene invocata una volta per
-          // fotogramma, non a ogni frame di rendering del browser.
-          snap: "frame",
+          // NIENTE snap: l'indice resta frazionario e draw sfuma fra i
+          // due fotogrammi adiacenti. Arrotondando all'intero, a scroll
+          // lento si vede la quantizzazione — l'immagine tiene per due
+          // o tre frame di rendering e poi salta.
           ease: "none",
           duration: 10,
-          onUpdate: () => draw(Math.round(state.frame)),
+          onUpdate: () => draw(state.frame),
         },
         0,
       );
@@ -398,7 +466,7 @@ export default function ProductSequence() {
           data-pin-content
           className="shell relative z-10 flex h-full flex-col pt-24 pb-24 md:pt-28"
         >
-          <p data-reveal className="type-label text-ash">il prodotto</p>
+          <p data-reveal className="type-label text-volt">il prodotto</p>
 
           {/* Su mobile i callout stanno in colonna sotto il prodotto;
               da md in su si dispongono attorno all'inquadratura. */}
@@ -415,7 +483,7 @@ export default function ProductSequence() {
               >
                 <span
                   aria-hidden
-                  className="mb-3 block h-1.5 w-1.5 rounded-full bg-paper md:mb-4"
+                  className="mb-3 block h-1.5 w-1.5 rounded-full bg-volt md:mb-4"
                 />
                 <span className="block h-px w-full bg-line-dark" />
                 <h3 className="type-display mt-3 text-lead">

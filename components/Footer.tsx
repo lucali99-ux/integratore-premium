@@ -1,3 +1,5 @@
+import ZigZag from "./ZigZag";
+
 /**
  * Footer.
  *
@@ -34,14 +36,16 @@ export default function Footer() {
               {index < values.length - 1 && (
                 <span
                   aria-hidden
-                  className="mb-[0.3em] hidden h-1.5 w-1.5 shrink-0 rounded-full bg-ink sm:block"
+                  className="mb-[0.3em] hidden h-1.5 w-1.5 shrink-0 rounded-full bg-volt sm:block"
                 />
               )}
             </div>
           ))}
         </div>
 
-        <div className="type-meta mt-20 flex flex-col gap-4 border-t border-line pt-8 text-ash sm:flex-row sm:items-center sm:justify-between">
+        <ZigZag className="mt-20 text-ink/30" />
+
+        <div className="type-meta flex flex-col gap-4 pt-8 text-ash sm:flex-row sm:items-center sm:justify-between">
           <p>© volta 2026 · marchio fittizio a scopo dimostrativo</p>
           <p>
             gli integratori non sostituiscono una dieta variata e uno stile di

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { introDone } from "@/lib/intro";
 import { gsap } from "@/lib/animation";
 
 /**
@@ -61,7 +62,29 @@ function useCursorEnabled() {
 
 export default function CustomCursor() {
   const root = useRef<HTMLDivElement>(null);
-  const enabled = useCursorEnabled();
+  const supportato = useCursorEnabled();
+
+  /**
+   * Il cursore non esiste finché l'intro non ha finito.
+   *
+   * Durante l'apertura il puntatore serve solo a saltare, e un anello
+   * che insegue sopra i pannelli neri distrae dal momento. Lo stato
+   * viene aggiornato dentro la callback della promessa, non nel corpo
+   * dell'effetto: un setState sincrono lì scatenerebbe render a
+   * cascata (ed è quello che react-hooks/set-state-in-effect vieta).
+   */
+  const [introFinita, setIntroFinita] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    introDone.then(() => {
+      if (vivo) setIntroFinita(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const enabled = supportato && introFinita;
 
   useEffect(() => {
     if (!enabled || !root.current) return;

@@ -52,7 +52,9 @@ export default function FinalCta() {
       aria-label="Acquista"
     >
       <div className="shell">
-        <p data-reveal className="type-label mb-12 text-ash md:mb-16">disponibile ora</p>
+        <p data-reveal className="type-label mb-12 text-volt md:mb-16">
+          disponibile ora
+        </p>
 
         <h2
           data-headline

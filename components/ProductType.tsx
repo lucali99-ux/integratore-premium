@@ -91,7 +91,10 @@ export default function ProductType() {
             residuo — nessuna capsula da deglutire, nessun dosatore da lavare,
             nessuna scusa per saltarla
           </p>
-          <p data-reveal className="type-meta text-ash">lat.// magnesium marinum</p>
+          <p data-reveal className="type-meta flex items-center gap-2 text-ash">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-volt" />
+            lat.// magnesium marinum
+          </p>
         </div>
       </div>
     </section>

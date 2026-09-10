@@ -4,13 +4,14 @@ import ProductType from "@/components/ProductType";
 import ProductSequence from "@/components/ProductSequence";
 import Ingredients from "@/components/Ingredients";
 import Results from "@/components/Results";
+import Athletes from "@/components/Athletes";
 import FinalCta from "@/components/FinalCta";
 import Footer from "@/components/Footer";
 
 /**
  * Narrazione:
  *   affermazione → filosofia → prodotto (tipografia, poi da vicino)
- *   → formula → dati → acquisto
+ *   → formula → dati → prova sociale → acquisto
  *
  * Il ritmo dei fondi alterna chiaro/scuro quattro volte. È il motivo
  * per cui ScrollProgress usa mix-blend-difference invece di tracciare
@@ -25,6 +26,7 @@ export default function Home() {
       <ProductSequence />
       <Ingredients />
       <Results />
+      <Athletes />
       <FinalCta />
       <Footer />
     </>

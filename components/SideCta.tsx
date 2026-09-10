@@ -77,7 +77,7 @@ export default function SideCta() {
         href="#acquista"
         className="capsule flex flex-col items-center gap-3 bg-ink px-3 py-6 text-paper transition-colors hover:bg-volt hover:text-ink"
       >
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-volt" />
         <span
           className="type-label tracking-[0.08em]"
           style={{ writingMode: "vertical-rl" }}

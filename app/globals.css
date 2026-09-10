@@ -152,6 +152,19 @@ html.cursore-custom [role="button"] {
   cursor: none;
 }
 
+/* Descrizioni delle card ingrediente: normalmente si aprono
+   all'hover, ma chi ha chiesto movimento ridotto non deve dover
+   scoprire il contenuto passandoci sopra. Sempre aperte, senza
+   transizione. */
+@media (prefers-reduced-motion: reduce) {
+  [data-desc] {
+    max-height: none;
+    opacity: 1;
+    margin-top: 1rem;
+    transition: none;
+  }
+}
+
 /* La capsula/pill: forma ricorrente del riferimento, usata come
    fondale delle sezioni scure e come shape della CTA. */
 .capsule {

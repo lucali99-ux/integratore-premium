@@ -133,17 +133,17 @@ export default function Philosophy() {
             <span
               key={i}
               data-rule
-              className={`absolute block h-px bg-paper ${
-                i % 2 === 0
-                  ? "inset-x-0"
-                  : "inset-x-[24%] md:inset-x-[32%]"
-              }`}
+              // La riga centrale è lime: è il punto su cui il testo
+              // si appoggia, e dà un fuoco al reticolo.
+              className={`absolute block h-px ${
+                i === (RULES - 1) / 2 ? "bg-volt" : "bg-paper"
+              } ${i % 2 === 0 ? "inset-x-0" : "inset-x-[24%] md:inset-x-[32%]"}`}
             />
           ))}
         </div>
 
         <div className="shell relative z-10 flex flex-col items-center text-center">
-          <p data-reveal className="type-label mb-10 text-ash">
+          <p data-reveal className="type-label mb-10 text-volt">
             la formula
           </p>
 
