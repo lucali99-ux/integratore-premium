@@ -10,24 +10,57 @@ import { gsap, ScrollTrigger, useScene } from "@/lib/animation";
  * pinnata, e i callout entrano a intervalli lungo la rotazione.
  *
  * I fotogrammi vengono da assets/rotazione-prodotto.mp4, estratti con
- *   node scripts/frames-from-video.mjs assets/rotazione-prodotto.mp4 60 1200 700:1248:482:0
+ *   node scripts/frames-from-video.mjs assets/rotazione-prodotto.mp4 180 1200 700:1248:482:0
  * Per rifarli con un altro video basta rilanciare lo script e, se cambi
  * numero o formato, aggiornare le due costanti qui sotto.
  */
-const FRAME_COUNT = 60;
+const FRAME_COUNT = 180;
 const FRAME_EXT = "jpg";
 const FRAME_SRC = (i: number) =>
   `/sequence/frame-${String(i + 1).padStart(3, "0")}.${FRAME_EXT}`;
 
 /**
- * Quante immagini scaricare in parallelo. Con 60 JPG da ~150 KB,
- * lanciare 60 richieste insieme satura la connessione e i primi
- * frame — gli unici che servono subito — arrivano per ultimi.
+ * Quante immagini scaricare in parallelo. Lanciare 180 richieste
+ * insieme satura la connessione e i primi fotogrammi — gli unici che
+ * servono subito — arrivano per ultimi.
  */
 const CONCURRENCY = 8;
 
-/** Frame mostrato nella variante senza animazione: una posa di 3/4. */
-const STATIC_FRAME = Math.round(FRAME_COUNT * 0.12);
+/**
+ * Su mobile si usa un fotogramma ogni tre.
+ *
+ * Lì il prodotto viene disegnato a circa 227 px di larghezza: tenere
+ * 180 immagini decodificate in memoria per quella dimensione è spreco
+ * puro, e su un telefono la pressione sulla memoria è reale. Sessanta
+ * fotogrammi restano fluidi a quella scala. Stessi file, nessun asset
+ * aggiuntivo: si saltano e basta.
+ */
+const MOBILE_STEP = 3;
+
+/**
+ * Ordine di caricamento a passate successive.
+ *
+ * Prima un fotogramma ogni sei: la sequenza diventa usabile dopo circa
+ * un sesto del peso totale. Poi ogni tre, poi tutti. Con 180 immagini
+ * il caricamento sequenziale lascerebbe il canvas fermo sul primo
+ * fotogramma per troppo tempo.
+ */
+function loadOrder(length: number) {
+  const order: number[] = [];
+  const seen = new Set<number>();
+  for (const stride of [6, 3, 1]) {
+    for (let i = 0; i < length; i += stride) {
+      if (!seen.has(i)) {
+        seen.add(i);
+        order.push(i);
+      }
+    }
+  }
+  return order;
+}
+
+/** Posa mostrata nella variante senza animazione: tre quarti. */
+const STATIC_POSITION = 0.12;
 
 const CALLOUTS = [
   {
@@ -86,44 +119,87 @@ function fadeEdges(
 export default function ProductSequence() {
   const root = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frames = useRef<HTMLImageElement[]>([]);
-  const currentFrame = useRef(0);
 
   /**
-   * Disegna un frame. `contain` e non `cover`: il prodotto deve stare
-   * tutto dentro l'inquadratura, anche sui formati stretti.
+   * `sequence` contiene gli indici assoluti dei fotogrammi realmente
+   * usati (tutti su desktop, uno ogni tre su mobile) e `images` è
+   * parallelo a esso. Tenere i due allineati permette al resto del
+   * componente di ragionare su una sola posizione 0..sequence.length-1
+   * senza sapere nulla del passo.
    */
-  const draw = useCallback((index: number) => {
-    const canvas = canvasRef.current;
-    const image = frames.current[index];
-    if (!canvas || !image?.complete || !image.naturalWidth) return;
+  const sequence = useRef<number[]>([]);
+  const images = useRef<HTMLImageElement[]>([]);
+  const position = useRef(0);
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const isReady = (image?: HTMLImageElement) =>
+    Boolean(image?.complete && image.naturalWidth);
 
-    const { width, height } = canvas; // dimensioni del buffer, non CSS
-    ctx.clearRect(0, 0, width, height);
-
-    const scale = Math.min(
-      width / image.naturalWidth,
-      height / image.naturalHeight,
-    );
-    const w = image.naturalWidth * scale;
-    const h = image.naturalHeight * scale;
-    const x = (width - w) / 2;
-    const y = (height - h) / 2;
-    ctx.drawImage(image, x, y, w, h);
-
-    // Il fondo dello studio nei fotogrammi va da #0d1112 in alto (di
-    // fatto il nero della sezione) a #242527 in basso, dove c'è il
-    // piano: senza intervento si vede il bordo dell'immagine.
-    // La sfumatura è disegnata sui bordi dell'IMMAGINE, non applicata
-    // come mask CSS all'elemento canvas: su mobile l'immagine non
-    // riempie il canvas, e la maschera cadrebbe nel punto sbagliato.
-    fadeEdges(ctx, x, y, w, h);
-
-    currentFrame.current = index;
+  /**
+   * Posizione più vicina a quella richiesta per cui il fotogramma è
+   * già stato caricato.
+   *
+   * Serve per il caricamento a passate: durante la prima passata solo
+   * un fotogramma su sei esiste, e senza questo ripiego il canvas
+   * resterebbe fermo sull'ultimo disegnato mentre l'utente scorre.
+   * Meglio un fotogramma leggermente sbagliato che uno immobile.
+   */
+  const nearestLoaded = useCallback((index: number) => {
+    const list = images.current;
+    if (isReady(list[index])) return index;
+    for (let distance = 1; distance < list.length; distance++) {
+      const before = index - distance;
+      const after = index + distance;
+      if (before >= 0 && isReady(list[before])) return before;
+      if (after < list.length && isReady(list[after])) return after;
+    }
+    return -1;
   }, []);
+
+  /**
+   * Disegna la posizione richiesta. `contain` e non `cover`: il
+   * prodotto deve stare tutto dentro l'inquadratura, anche sui
+   * formati stretti.
+   */
+  const draw = useCallback(
+    (index: number) => {
+      // La posizione richiesta viene memorizzata comunque, anche se il
+      // fotogramma non c'è ancora: un resize successivo ridisegnerà
+      // quello giusto una volta arrivato.
+      position.current = index;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const usable = nearestLoaded(index);
+      if (usable < 0) return;
+      const image = images.current[usable];
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const { width, height } = canvas; // dimensioni del buffer, non CSS
+      ctx.clearRect(0, 0, width, height);
+
+      const scale = Math.min(
+        width / image.naturalWidth,
+        height / image.naturalHeight,
+      );
+      const w = image.naturalWidth * scale;
+      const h = image.naturalHeight * scale;
+      const x = (width - w) / 2;
+      const y = (height - h) / 2;
+      ctx.drawImage(image, x, y, w, h);
+
+      // Il fondo dello studio nei fotogrammi va da #0d1112 in alto (di
+      // fatto il nero della sezione) a #242527 in basso, dove c'è il
+      // piano: senza intervento si vede il bordo dell'immagine.
+      // La sfumatura è disegnata sui bordi dell'IMMAGINE, non applicata
+      // come mask CSS all'elemento canvas: su mobile l'immagine non
+      // riempie il canvas, e la maschera cadrebbe nel punto sbagliato.
+      fadeEdges(ctx, x, y, w, h);
+    },
+    [nearestLoaded],
+  );
 
   /**
    * Adegua il buffer del canvas alla dimensione CSS e alla densità
@@ -138,42 +214,53 @@ export default function ProductSequence() {
     const rect = canvas.getBoundingClientRect();
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
-    draw(currentFrame.current);
+    draw(position.current);
   }, [draw]);
 
-  // --- Caricamento pigro -------------------------------------------
+  // --- Caricamento pigro, a passate successive ---------------------
   useEffect(() => {
     const el = root.current;
     if (!el) return;
+
+    // Il passo è deciso una volta al mount: cambiarlo a un resize
+    // significherebbe ricaricare l'intera sequenza mentre l'utente
+    // trascina il bordo della finestra.
+    const step = window.matchMedia("(min-width: 768px)").matches
+      ? 1
+      : MOBILE_STEP;
+    sequence.current = [];
+    for (let i = 0; i < FRAME_COUNT; i += step) sequence.current.push(i);
+    images.current = new Array(sequence.current.length);
 
     let cancelled = false;
     resize();
 
     const loadSequence = async () => {
+      const order = loadOrder(sequence.current.length);
       let cursor = 0;
 
-      // Worker che pescano dallo stesso cursore: l'ordine resta
-      // sostanzialmente sequenziale, con al massimo CONCURRENCY
-      // richieste aperte insieme.
+      // Worker che pescano dallo stesso cursore: al massimo
+      // CONCURRENCY richieste aperte insieme, e l'ordine resta quello
+      // delle passate.
       const worker = async () => {
-        while (cursor < FRAME_COUNT && !cancelled) {
-          const index = cursor++;
+        while (cursor < order.length && !cancelled) {
+          const slot = order[cursor++];
           await new Promise<void>((resolve) => {
             const image = new Image();
             image.decoding = "async";
             image.onload = image.onerror = () => resolve();
-            image.src = FRAME_SRC(index);
-            frames.current[index] = image;
+            image.src = FRAME_SRC(sequence.current[slot]);
+            images.current[slot] = image;
           });
-          // Appena il primo frame è pronto il canvas smette di
-          // essere una superficie vuota.
-          if (index === 0) draw(currentFrame.current);
+          // Ridisegna man mano: durante le prime passate ogni nuovo
+          // fotogramma può essere più vicino di quello ripiegato.
+          if (!cancelled) draw(position.current);
         }
       };
 
       await Promise.all(Array.from({ length: CONCURRENCY }, worker));
       if (cancelled) return;
-      draw(currentFrame.current);
+      draw(position.current);
       // Le altezze non cambiano, ma un refresh dopo il caricamento
       // mette al riparo da start/end calcolati su un layout parziale.
       ScrollTrigger.refresh();
@@ -210,6 +297,7 @@ export default function ProductSequence() {
   // --- Scena -------------------------------------------------------
   useScene(root, {
     full: () => {
+      const last = sequence.current.length - 1;
       // Oggetto proxy: GSAP anima un numero, non il DOM. È il pattern
       // standard per le sequenze canvas.
       const state = { frame: 0 };
@@ -219,6 +307,9 @@ export default function ProductSequence() {
         scrollTrigger: {
           trigger: root.current,
           start: "top top",
+          // Con 180 fotogrammi su 220% di viewport si cambia immagine
+          // ogni ~11 px di scroll, che è la soglia sotto cui la
+          // rotazione smette di leggersi a scatti.
           end: "+=220%",
           scrub: 0.5,
           pin: root.current!.querySelector("[data-pin]"),
@@ -229,9 +320,9 @@ export default function ProductSequence() {
       tl.to(
         state,
         {
-          frame: FRAME_COUNT - 1,
-          // snap all'intero: draw viene invocata ~60 volte in tutto lo
-          // scrub, non a ogni frame di rendering del browser.
+          frame: last,
+          // snap all'intero: draw viene invocata una volta per
+          // fotogramma, non a ogni frame di rendering del browser.
           snap: "frame",
           ease: "none",
           duration: 10,
@@ -260,10 +351,10 @@ export default function ProductSequence() {
       );
     },
 
-    // Statica: una posa di 3/4, callout tutti visibili, nessun pin.
+    // Statica: una posa di tre quarti, callout tutti visibili,
+    // nessun pin.
     reduced: () => {
-      currentFrame.current = STATIC_FRAME;
-      draw(STATIC_FRAME);
+      draw(Math.round((sequence.current.length - 1) * STATIC_POSITION));
       gsap.set(gsap.utils.toArray<HTMLElement>("[data-callout]"), {
         autoAlpha: 1,
         y: 0,

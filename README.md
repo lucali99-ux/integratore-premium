@@ -103,19 +103,35 @@ riempie il canvas — una mask sull'elemento cadrebbe nel punto sbagliato.
 ### Rifare la sequenza di rotazione
 
 ```bash
-node scripts/frames-from-video.mjs <video> 60 1200
+node scripts/frames-from-video.mjs <video> 180 1200 700:1248:482:0
 ```
 
-Lo script calcola l'fps che distribuisce esattamente 60 fotogrammi sulla
+Lo script calcola l'fps che distribuisce esattamente 180 fotogrammi sulla
 durata del video: estrarne "a caso" darebbe una rotazione che accelera e
 rallenta lungo lo scroll. Scrive `public/sequence/frame-001.jpg` …
+
+**Quanti fotogrammi servono.** La misura da guardare non è il numero ma i
+**pixel di scroll per fotogramma**: distanza di pin diviso numero di
+fotogrammi. Con 60 immagini su `+=220%` di viewport si cambiava immagine ogni
+33 px e la rotazione si vedeva a scatti; con 180 si sta a 11 px, che è dentro
+la finestra 5–15 px in cui il movimento si legge continuo. Se allunghi la
+distanza di pin, alza i fotogrammi in proporzione.
 
 Se cambi numero di frame o formato, aggiorna `FRAME_COUNT` e `FRAME_EXT` in
 `components/ProductSequence.tsx`. Nient'altro: caricamento pigro, fit
 `contain`, gestione del DPI e scrub restano identici.
 
-Sopra i ~90 fotogrammi il peso cresce senza che l'occhio percepisca più
-fluidità, perché lo scrub è già limitato dal frame rate del browser.
+**Caricamento.** Il componente carica a passate successive — prima un
+fotogramma ogni sei, poi ogni tre, poi tutti — e `draw()` ripiega sul
+fotogramma caricato più vicino a quello richiesto. Senza il ripiego, durante
+la prima passata il canvas resterebbe fermo sull'ultima immagine disegnata
+mentre l'utente scorre: meglio un fotogramma leggermente sbagliato che uno
+immobile.
+
+**Su mobile** si usa un fotogramma ogni tre (`MOBILE_STEP`): lì il prodotto è
+disegnato a circa 227 px di larghezza, e tenere 180 immagini decodificate per
+quella dimensione è spreco puro. Verificato: 60 richieste e 1,1 MB su 390 px
+di viewport, 180 e 3,3 MB su 1440 px. Stessi file, nessun asset aggiuntivo.
 
 `scripts/generate-frames.mjs` resta come fallback: rigenera i placeholder
 geometrici numerati se ti serve lavorare senza gli asset veri.
@@ -134,6 +150,14 @@ portare gli elementi dove sarebbero finiti. Verificato: con
 `prefers-reduced-motion: reduce` la pagina non ha nessun elemento a
 `opacity: 0` o `visibility: hidden`, il contatore mostra `87`, e non viene
 creato nessun pin né lo smooth scroll.
+
+**Non si clona la reference, si clonano i meccanismi.** Della pagina di
+riferimento si riprende *come si comporta* — cosa è pinnato, cosa è in scrub,
+come il testo si rivela, il ritmo delle sezioni. Non si riprendono le sue
+forme riconoscibili: il fondale della sezione filosofia era una copia della
+capsula di sofi ed è stato sostituito con un reticolo di righe che si apre,
+che riprende invece le bande orizzontali dell'intro — il motivo proprio di
+questo sito.
 
 **Il lime (`--color-volt`) è una risorsa scarsa.** Tre soli usi: il pallino
 meta dell'hero, l'hover delle CTA, il numero della sezione risultati. Il
