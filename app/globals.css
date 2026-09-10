@@ -61,6 +61,15 @@ body {
   color: var(--color-ink);
 }
 
+/* Anello di focus da tastiera. Il default del browser è azzurro e
+   fuori palette; :focus-visible lo mostra solo a chi naviga da
+   tastiera, senza comparire al click del mouse. */
+:focus-visible {
+  outline: 2px solid var(--color-volt);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 /* ============================================================
    Lenis (regole richieste dalla libreria, scritte a mano per
    tenere tutto il CSS del progetto in un file solo)
@@ -152,16 +161,68 @@ html.cursore-custom [role="button"] {
   cursor: none;
 }
 
-/* Descrizioni delle card ingrediente: normalmente si aprono
-   all'hover, ma chi ha chiesto movimento ridotto non deve dover
-   scoprire il contenuto passandoci sopra. Sempre aperte, senza
-   transizione. */
+/* ============================================================
+   Card ingrediente che si gira
+   Il fronte mostra la fotografia e i dati, il retro racconta
+   estrazione e funzione. Si gira col click o da tastiera.
+   ============================================================ */
+.scheda {
+  /* La prospettiva sta sul contenitore, non sull'elemento che ruota:
+     applicata al ruotante darebbe una proiezione piatta, senza
+     scorcio. Valore alto = rotazione pacata, da oggetto grande. */
+  perspective: 1600px;
+}
+
+.scheda-corpo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.75s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
+.scheda[data-flipped="true"] .scheda-corpo {
+  transform: rotateY(180deg);
+}
+
+.scheda-faccia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  /* Senza questo si vedrebbe il testo speculare della faccia dietro. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.scheda-retro {
+  transform: rotateY(180deg);
+}
+
+/* Movimento ridotto: niente rotazione. Serve però un meccanismo
+   alternativo per mostrare il retro, perché con la rotazione
+   disattivata e backface-visibility:hidden non comparirebbe mai. */
 @media (prefers-reduced-motion: reduce) {
-  [data-desc] {
-    max-height: none;
-    opacity: 1;
-    margin-top: 1rem;
+  .scheda-corpo {
     transition: none;
+    transform: none !important;
+  }
+  .scheda-faccia {
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+    transform: none;
+  }
+  .scheda-retro {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .scheda[data-flipped="true"] .scheda-fronte {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .scheda[data-flipped="true"] .scheda-retro {
+    opacity: 1;
+    visibility: visible;
   }
 }
 

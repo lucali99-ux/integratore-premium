@@ -251,6 +251,20 @@ portare gli elementi dove sarebbero finiti. Verificato: con
 `opacity: 0` o `visibility: hidden`, il contatore mostra `87`, e non viene
 creato nessun pin né lo smooth scroll.
 
+**Le card ingrediente si girano.** Fronte fotografico, retro con estrazione
+in natura e funzione nella formula. Tre cose da non rompere:
+
+- la card **è** un `<button>` con `aria-expanded`, quindi si gira anche da
+  tastiera. La faccia nascosta è marcata `inert`: senza, uno screen reader
+  leggerebbe il testo del retro mentre è voltato dall'altra parte;
+- la `perspective` sta sul contenitore, non sull'elemento che ruota.
+  Applicata al ruotante darebbe una proiezione piatta, senza scorcio;
+- con `prefers-reduced-motion` la rotazione è disattivata, e serve un
+  meccanismo alternativo: con `backface-visibility: hidden` e la rotazione
+  ferma il retro non comparirebbe mai. Le due facce si scambiano con
+  `opacity`/`visibility`. Verificato: `transform: none` sul corpo e retro
+  comunque visibile.
+
 **I divisori sono a zig-zag, non righe dritte.** `components/ZigZag.tsx` usa
 un `<pattern>` SVG in coordinate utente, quindi si ripete da solo a qualsiasi
 larghezza e resta nitido a ogni densità. L'id del pattern viene da `useId`:
