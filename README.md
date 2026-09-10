@@ -105,19 +105,56 @@ riempie il canvas — una mask sull'elemento cadrebbe nel punto sbagliato.
 ### Rifare la sequenza di rotazione
 
 ```bash
-node scripts/frames-from-video.mjs <video> 180 1200 700:1248:482:0
+# 1. alza il frame rate del sorgente con interpolazione a compensazione di moto
+ffmpeg -i assets/rotazione-prodotto.mp4 \
+  -vf "minterpolate=fps=72:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" \
+  -c:v libx264 -crf 16 assets/rotazione-interpolata.mp4
+
+# 2. estrai campionando a cambiamento visivo costante
+node scripts/frames-from-video.mjs assets/rotazione-interpolata.mp4 180 1200 700:1248:482:0
 ```
 
 Lo script calcola l'fps che distribuisce esattamente 180 fotogrammi sulla
 durata del video: estrarne "a caso" darebbe una rotazione che accelera e
 rallenta lungo lo scroll. Scrive `public/sequence/frame-001.jpg` …
 
-**Quanti fotogrammi servono.** La misura da guardare non è il numero ma i
-**pixel di scroll per fotogramma**: distanza di pin diviso numero di
-fotogrammi. Con 60 immagini su `+=220%` di viewport si cambiava immagine ogni
-33 px e la rotazione si vedeva a scatti; con 180 si sta a 11 px, che è dentro
-la finestra 5–15 px in cui il movimento si legge continuo. Se allunghi la
-distanza di pin, alza i fotogrammi in proporzione.
+### Perché due passaggi e non un semplice `fps=`
+
+**Il numero di fotogrammi è solo metà del problema.** La prima misura da
+guardare sono i **pixel di scroll per fotogramma**: distanza di pin diviso
+numero di fotogrammi. Con 60 immagini su `+=220%` di viewport si cambiava
+immagine ogni 33 px, sopra la soglia oltre cui si vedono gli scatti; con 180
+si sta a 11 px, dentro la finestra 5–15 px in cui il movimento si legge
+continuo.
+
+**La seconda è l'uniformità del sorgente**, ed è quella che ci ha fregato. Un
+video generato dall'IA non ruota a velocità costante: il nostro restava fermo
+per 26 fotogrammi su 193 e poi scattava, con picchi di 8 volte la media.
+Campionandolo a intervalli di tempo uguali quell'irregolarità finisce dritta
+nella sequenza, e nessun aumento del numero di fotogrammi la corregge.
+
+La misura di controllo è la **deviazione standard della differenza fra
+fotogrammi consecutivi**, in percentuale sulla media. Sotto il 40% la
+rotazione si legge continua. Il percorso su questo progetto:
+
+| | dev. std | fermi | scatti |
+|---|---|---|---|
+| campionamento a tempo, sorgente grezzo | 86% | 19 | 12 |
+| riequalizzato, sorgente grezzo | 70% | 13 | 10 |
+| riequalizzato, sorgente interpolato, smorzamento 0.5 | 45% | 3 | 9 |
+| **riequalizzato, sorgente interpolato, smorzamento 0.8** | **34%** | 4 | **2** |
+
+L'interpolazione serve perché la riequalizzazione non inventa fotogrammi: se
+il sorgente ne ha pochi dove il movimento è veloce, quelli scelti si ripetono.
+Da 193 a 574 fotogrammi i ripetuti sono passati da 29 a 3.
+
+Per rimisurare dopo un cambio, il metodo è nel commento in testa allo script:
+si decodificano i fotogrammi in grigio piccolo e si confrontano a coppie.
+
+**Attenzione all'interpolazione**: `minterpolate` deforma dove la sagoma
+cambia più in fretta. Sul nostro turntable il punto critico è il passaggio di
+taglio, intorno ai 2 e ai 6 secondi — va sempre ispezionato prima di
+estrarre.
 
 Se cambi numero di frame o formato, aggiorna `FRAME_COUNT` e `FRAME_EXT` in
 `components/ProductSequence.tsx`. Nient'altro: caricamento pigro, fit
@@ -129,6 +166,10 @@ fotogramma caricato più vicino a quello richiesto. Senza il ripiego, durante
 la prima passata il canvas resterebbe fermo sull'ultima immagine disegnata
 mentre l'utente scorre: meglio un fotogramma leggermente sbagliato che uno
 immobile.
+
+**Riferimento**: la pagina di riferimento usa la stessa tecnica — due canvas e
+226 fotogrammi WebP da 28,5 KB, 6,3 MB in totale. Il loro vantaggio non è il
+numero ma il sorgente, che è un render a velocità angolare costante.
 
 **Su mobile** si usa un fotogramma ogni tre (`MOBILE_STEP`): lì il prodotto è
 disegnato a circa 227 px di larghezza, e tenere 180 immagini decodificate per

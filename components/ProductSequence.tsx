@@ -9,10 +9,13 @@ import { gsap, ScrollTrigger, useScene } from "@/lib/animation";
  * Momento animato: lo stick ruota di 360° in scrub mentre la sezione è
  * pinnata, e i callout entrano a intervalli lungo la rotazione.
  *
- * I fotogrammi vengono da assets/rotazione-prodotto.mp4, estratti con
- *   node scripts/frames-from-video.mjs assets/rotazione-prodotto.mp4 180 1200 700:1248:482:0
- * Per rifarli con un altro video basta rilanciare lo script e, se cambi
- * numero o formato, aggiornare le due costanti qui sotto.
+ * I fotogrammi vengono da assets/rotazione-prodotto.mp4, prima
+ * interpolato a 72fps e poi campionato a cambiamento visivo costante —
+ * il video generato dall'IA ruota a velocità irregolare, e campionarlo
+ * a tempo produce una rotazione a scatti. Il procedimento completo è
+ * documentato in scripts/frames-from-video.mjs.
+ * Se cambi numero di fotogrammi o formato, aggiorna le due costanti
+ * qui sotto.
  */
 const FRAME_COUNT = 180;
 const FRAME_EXT = "jpg";
