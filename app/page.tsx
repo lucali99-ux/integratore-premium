@@ -5,6 +5,7 @@ import ProductSequence from "@/components/ProductSequence";
 import Ingredients from "@/components/Ingredients";
 import Results from "@/components/Results";
 import Athletes from "@/components/Athletes";
+import Range from "@/components/Range";
 import FinalCta from "@/components/FinalCta";
 import Footer from "@/components/Footer";
 
@@ -25,6 +26,7 @@ export default function Home() {
       <ProductType />
       <ProductSequence />
       <Ingredients />
+      <Range />
       <Results />
       <Athletes />
       <FinalCta />

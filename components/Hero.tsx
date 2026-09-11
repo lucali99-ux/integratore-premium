@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { gsap, SplitText, useScene } from "@/lib/animation";
+import { gsap, useScene } from "@/lib/animation";
 import { introDone } from "@/lib/intro";
 
 /**
@@ -12,61 +12,67 @@ import { introDone } from "@/lib/intro";
  * alto a sinistra, micro-paragrafo sotto, prodotto che esce dal bordo
  * destro, pill CTA in basso.
  *
- * Momento animato: reveal char-by-char, in due tempi.
- *  - riga 1 al load  → la pagina non è mai vuota all'atterraggio
- *  - riga 2 in scrub → è il momento forte, guidato dallo scroll
+ * Momento animato: le due righe vengono scoperte da un TAGLIO OBLIQUO
+ * che le spazza da sinistra, con la stessa inclinazione con cui si
+ * apre l'intro. È di fatto una rivelazione lettera per lettera — è il
+ * bordo diagonale a scoprirle una a una — ma avviene al caricamento.
+ *
+ * Prima la seconda riga era legata allo scroll, e a pagina ferma
+ * lasciava una banda vuota alta quanto una riga di testo: la headline
+ * si leggeva monca. Legarla al caricamento risolve, e il taglio
+ * obliquo la tiene coerente con l'apertura invece di essere una
+ * comparsa qualunque.
  *
  * Il blocco è `sticky` (CSS) e non pinnato (GSAP): stesso effetto,
  * senza spacer iniettati nel DOM né reflow.
  */
+
+/** Inclinazione del taglio, in percentuale della larghezza della riga.
+ *  Stesso valore usato dall'intro, così i due gesti si somigliano. */
+const SLANT = 6;
+
 export default function Hero() {
   const root = useRef<HTMLElement>(null);
 
   useScene(root, {
     full: () => {
-      const lineOne = root.current!.querySelector("[data-line='1']")!;
-      const lineTwo = root.current!.querySelector("[data-line='2']")!;
+      const righe = gsap.utils.toArray<HTMLElement>("[data-line]");
 
-      // --- Riga 1: entrata alla fine dell'intro -------------------
-      // Il tween nasce in pausa: se partisse al mount si consumerebbe
-      // dietro allo schermo nero dell'intro e l'utente atterrerebbe su
-      // una headline già ferma. `introDone` si risolve subito quando
+      /**
+       * Posiziona il bordo diagonale che scopre la riga.
+       * I vertici escono sopra e sotto il riquadro (-20% / 120%)
+       * perché il taglio deve attraversare anche ascendenti e
+       * discendenti senza mozzarle.
+       */
+      const taglia = (el: HTMLElement, p: number) => {
+        el.style.clipPath = `polygon(-3% -20%, ${p + SLANT}% -20%, ${p - SLANT}% 120%, -3% 120%)`;
+      };
+
+      const tl = gsap.timeline({ paused: true });
+
+      righe.forEach((riga, i) => {
+        // Stato iniziale: il bordo è a sinistra del testo, niente
+        // è visibile. Applicato subito, prima del primo paint.
+        taglia(riga, -SLANT - 3);
+
+        const stato = { p: -SLANT - 3 };
+        tl.to(
+          stato,
+          {
+            p: 118,
+            duration: 1.1,
+            ease: "power3.inOut",
+            onUpdate: () => taglia(riga, stato.p),
+          },
+          i * 0.22,
+        );
+      });
+
+      // Parte quando l'intro ha finito: altrimenti si consumerebbe
+      // dietro ai pannelli neri e l'utente atterrerebbe su una
+      // headline già ferma. `introDone` si risolve subito quando
       // l'intro non gira (prefers-reduced-motion).
-      const splitOne = SplitText.create(lineOne, {
-        type: "chars",
-        mask: "chars", // wrapper con overflow:clip attorno a ogni lettera
-        autoSplit: true, // ri-split se il testo va a capo diversamente
-        onSplit: (self) => {
-          const tween = gsap.from(self.chars, {
-            yPercent: 115,
-            duration: 0.7,
-            ease: "power3.out",
-            stagger: 0.028,
-            paused: true,
-          });
-          introDone.then(() => tween.play());
-          return tween;
-        },
-      });
-
-      // --- Riga 2: reveal guidato dallo scroll --------------------
-      const splitTwo = SplitText.create(lineTwo, {
-        type: "chars",
-        mask: "chars",
-        autoSplit: true,
-        onSplit: (self) =>
-          gsap.from(self.chars, {
-            yPercent: 115,
-            ease: "none", // in scrub l'ease va tolto: la guida è lo scroll
-            stagger: 0.5, // in scrub lo stagger è proporzione, non secondi
-            scrollTrigger: {
-              trigger: root.current,
-              start: "top top",
-              end: "+=40%", // completa entro i primi 40vh di scroll
-              scrub: 0.6, // micro-ritardo = sensazione di peso
-            },
-          }),
-      });
+      introDone.then(() => tl.play());
 
       // --- Uscita: l'hero si dissolve mentre scorre via -----------
       gsap.to(root.current!.querySelector("[data-hero-inner]"), {
@@ -83,15 +89,16 @@ export default function Hero() {
         },
       });
 
-      // SplitText riscrive il DOM: senza revert un remount
-      // ri-splitterebbe testo già splittato, duplicando i caratteri.
       return () => {
-        splitOne.revert();
-        splitTwo.revert();
+        // Il clip-path è scritto a mano sugli elementi: va tolto, o
+        // resterebbe l'ultimo valore su un remount.
+        righe.forEach((riga) => {
+          riga.style.clipPath = "";
+        });
       };
     },
 
-    // Statica: nessuno split, nessun trigger. Il markup è già nel suo
+    // Statica: nessun taglio, nessun trigger. Il markup è già nel suo
     // stato finale — useScene si limita a renderlo visibile.
     reduced: () => {},
   });

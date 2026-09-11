@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { gsap, SplitText, useScene } from "@/lib/animation";
+import FloatingPouch from "./FloatingPouch";
 
 /**
  * SEZIONE 6 — Chiusura / acquisto.
@@ -48,10 +49,17 @@ export default function FinalCta() {
     <section
       id="acquista"
       ref={root}
-      className="bg-ink py-[clamp(7rem,18vh,14rem)] text-paper"
+      className="relative overflow-hidden bg-ink py-[clamp(7rem,18vh,14rem)] text-paper"
       aria-label="Acquista"
     >
-      <div className="shell">
+      <FloatingPouch
+        filtro="sepia(1) saturate(3.6) hue-rotate(-52deg) brightness(0.92)"
+        className="top-[12%] right-[6%] hidden h-[40vh] lg:block"
+        rotazione={13}
+        opacita={0.55}
+      />
+
+      <div className="relative z-10 shell">
         <p data-reveal className="type-label mb-12 text-volt md:mb-16">
           disponibile ora
         </p>

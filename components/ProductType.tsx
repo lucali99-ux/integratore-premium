@@ -76,7 +76,7 @@ export default function ProductType() {
             aria-hidden
             width={305}
             height={1050}
-            className="pointer-events-none absolute top-1/2 right-[2%] z-10 h-[42vh] w-auto max-w-none -translate-y-1/2 md:right-[14%] md:h-[74vh]"
+            className="pointer-events-none absolute top-1/2 right-[2%] z-10 h-[42vh] w-auto max-w-none -translate-y-1/2 md:right-[8%] md:h-[74vh]"
             style={{
               willChange: "transform",
               filter: "drop-shadow(-30px 40px 60px rgba(11,11,11,0.28))",

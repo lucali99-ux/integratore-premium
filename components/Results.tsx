@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { gsap, useScene } from "@/lib/animation";
 import ZigZag from "./ZigZag";
+import FloatingPouch from "./FloatingPouch";
 
 /**
  * SEZIONE 5 — Risultati.
@@ -87,10 +88,28 @@ export default function Results() {
     <section
       id="risultati"
       ref={root}
-      className="bg-paper py-[clamp(6rem,14vh,11rem)]"
+      className="relative overflow-hidden bg-paper py-[clamp(6rem,14vh,11rem)]"
       aria-label="Risultati del panel di test"
     >
-      <div className="shell">
+      {/* Bustine della gamma che affiorano dallo sfondo.
+          I filtri qui sono più scuri e più saturi di quelli usati
+          nella sezione gamma: là il fondo è nero, qui è chiaro, e le
+          stesse tinte risultavano slavate. */}
+      <FloatingPouch
+        filtro="sepia(1) saturate(3.4) hue-rotate(92deg) brightness(0.58)"
+        className="top-[22%] right-[2%] hidden h-[34vh] lg:block"
+        rotazione={16}
+        opacita={0.75}
+      />
+      <FloatingPouch
+        filtro="sepia(1) saturate(3.6) hue-rotate(168deg) brightness(0.6)"
+        className="-left-[3%] bottom-[6%] hidden h-[28vh] lg:block"
+        rotazione={-22}
+        corsa={70}
+        opacita={0.7}
+      />
+
+      <div className="relative z-10 shell">
         <p
           data-reveal
           className="type-label mb-12 flex items-center gap-2 text-ink md:mb-16"

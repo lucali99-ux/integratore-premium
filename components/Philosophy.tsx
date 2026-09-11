@@ -67,12 +67,20 @@ export default function Philosophy() {
             },
           });
 
-          tl.fromTo(
+          // Il riempimento del testo: con stagger 1 la durata REALE
+          // non è `duration`, è duration + stagger * (parole - 1).
+          // Sono ~18 unità, non 6.
+          const riempimento = gsap.fromTo(
             self.words,
             { opacity: 0.18 },
             { opacity: 1, ease: "none", stagger: 1, duration: 6 },
-            0,
-          ).fromTo(
+          );
+          tl.add(riempimento, 0);
+
+          // Le righe durano esattamente quanto il testo. Scrivere la
+          // durata a mano (erano 8) le faceva finire di aprirsi al 44%
+          // dello scroll, molto prima che la frase fosse completa.
+          tl.fromTo(
             rules,
             {
               // Partenza: righe quasi sovrapposte al centro.
@@ -86,7 +94,7 @@ export default function Philosophy() {
               opacity: (i: number) =>
                 RULE_ALPHA * (1 - Math.abs(i - middle) / (middle + 1.8)),
               ease: "none",
-              duration: 8,
+              duration: riempimento.duration(),
             },
             0,
           );
