@@ -23,8 +23,13 @@ import { introDone } from "@/lib/intro";
  * obliquo la tiene coerente con l'apertura invece di essere una
  * comparsa qualunque.
  *
- * Il blocco è `sticky` (CSS) e non pinnato (GSAP): stesso effetto,
- * senza spacer iniettati nel DOM né reflow.
+ * La sezione è alta ESATTAMENTE una viewport e il contenuto non è più
+ * sticky. Prima era 155svh con il blocco incollato in cima: quei 55svh
+ * in più servivano a dare corsa al reveal di "davvero" legato allo
+ * scroll. Ora che la riga si scopre al caricamento quella corsa non ha
+ * più uno scopo, e si traduceva in mezza viewport di scroll in cui la
+ * headline restava immobile — misurata: l'h1 non si muoveva da scroll
+ * 0 fino a 495px.
  */
 
 /** Inclinazione del taglio, in percentuale della larghezza della riga.
@@ -74,19 +79,29 @@ export default function Hero() {
       // l'intro non gira (prefers-reduced-motion).
       introDone.then(() => tl.play());
 
-      // --- Uscita: l'hero si dissolve mentre scorre via -----------
+      // --- Uscita ------------------------------------------------
+      // La sezione dura una viewport, quindi l'intervallo va da poco
+      // dopo l'inizio dello scroll fino a quando è uscita del tutto.
+      const uscita = {
+        trigger: root.current,
+        start: "top top-=12%",
+        end: "bottom top",
+        scrub: true,
+      } as const;
+
       gsap.to(root.current!.querySelector("[data-hero-inner]"), {
         opacity: 0,
         ease: "none",
-        scrollTrigger: {
-          trigger: root.current,
-          // "top-=75%": il top dell'hero raggiunge un punto 75vh SOPRA
-          // il bordo alto della viewport, cioè dopo 75vh di scroll.
-          // Con "top+=75%" il trigger sarebbe già superato a scroll 0.
-          start: "top top-=75%",
-          end: "bottom top",
-          scrub: true,
-        },
+        scrollTrigger: uscita,
+      });
+
+      // Il prodotto esce più lentamente del resto: la differenza di
+      // velocità dà profondità allo stacco, e usa lo scroll che
+      // rimane invece di lasciarlo a una sola dissolvenza.
+      gsap.to(root.current!.querySelector("[data-prodotto]"), {
+        yPercent: -18,
+        ease: "none",
+        scrollTrigger: uscita,
       });
 
       return () => {
@@ -107,12 +122,12 @@ export default function Hero() {
     <section
       id="top"
       ref={root}
-      className="relative min-h-[155svh] bg-paper"
+      className="relative h-svh bg-paper"
       aria-label="Introduzione"
     >
       <div
         data-hero-inner
-        className="sticky top-0 h-svh overflow-hidden"
+        className="relative h-full overflow-hidden"
       >
         {/*
           Prodotto scontornato (PNG con canale alpha): galleggia sul
@@ -125,6 +140,7 @@ export default function Hero() {
         */}
         <Image
           src="/product/pouch-cutout.png"
+          data-prodotto
           alt="Bustina VOLTA di magnesio marino ed elettroliti"
           width={305}
           height={1050}

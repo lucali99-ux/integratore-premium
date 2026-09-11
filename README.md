@@ -332,6 +332,15 @@ sulla pagina ce ne sono sette, e con un id fisso punterebbero tutti al primo.
 Il colore arriva da `currentColor`, così lo stesso componente serve sezioni
 chiare e scure.
 
+**Niente scroll che non produce nulla.** L'hero era alto 155svh con il
+contenuto `sticky`: quei 55svh in più esistevano solo per dare corsa al reveal
+di "davvero" legato allo scroll. Quando la riga è passata a scoprirsi al
+caricamento, la corsa è rimasta lì senza scopo — mezza viewport in cui la
+headline non si muoveva di un pixel. Se togli un'animazione legata allo
+scroll, togli anche l'altezza che le serviva: si misura piazzando un elemento
+e leggendo il suo `getBoundingClientRect().top` a scroll crescenti, e deve
+cambiare fin dal primo scatto.
+
 **Non si clona la reference, si clonano i meccanismi.** Della pagina di
 riferimento si riprende *come si comporta* — cosa è pinnato, cosa è in scrub,
 come il testo si rivela, il ritmo delle sezioni. Non si riprendono le sue
