@@ -39,10 +39,14 @@ const WORDS = ["recupera", "reintegra", "naturalmente"];
 
 /**
  * Ampiezza del varco a ogni scatto, in frazione della larghezza di
- * viewport. Il primo valore mostra un frammento di parola, l'ultimo
- * quasi tutta: è la progressione che rende leggibile il gesto.
+ * viewport.
+ *
+ * Il primo valore deve bastare a contenere la parola più lunga del
+ * primo scatto: a 0.24 il varco era 346px contro i ~460px di
+ * "recupera", e si leggeva "ecupera". La progressione resta — il
+ * varco cresce a ogni parola — ma parte da una misura leggibile.
  */
-const APERTURE = [0.24, 0.48, 0.72];
+const APERTURE = [0.46, 0.64, 0.82];
 
 /** Inclinazione del taglio: scostamento orizzontale fra alto e basso. */
 const SLANT = 0.06;
