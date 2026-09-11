@@ -27,6 +27,19 @@
  * Con `--uniforme` si torna al campionamento a tempo, utile se il
  * sorgente è già un render a velocità costante.
  *
+ * LIVELLI
+ *
+ * La variabile d'ambiente LIVELLI applica una correzione dei livelli
+ * ai fotogrammi estratti, nella forma `nero:bianco` in frazioni di
+ * 0–1. Serve quando il fondo dello studio nel video è più chiaro del
+ * fondo della sezione in pagina: senza, il fotogramma si legge come un
+ * rettangolo grigio appoggiato sul nero.
+ *
+ *   LIVELLI=0.30:0.92 node scripts/frames-from-video.mjs ...
+ *
+ * Il valore del nero va scelto misurando: deve stare sopra il punto
+ * più chiaro del FONDO e sotto il punto più scuro del PRODOTTO.
+ *
  * INTERPOLAZIONE DEL SORGENTE
  *
  * La riequalizzazione non può inventare fotogrammi: se il sorgente ne
@@ -86,6 +99,20 @@ const SMORZAMENTO = Number(process.env.SMORZAMENTO) || 0.8;
 /** Filtro di ritaglio condiviso fra analisi ed estrazione. */
 const crop = cropArg ? `crop=${cropArg},` : "";
 
+/**
+ * Correzione dei livelli, opzionale. Alza il punto di nero per
+ * mandare il fondo dello studio a nero pieno, e abbassa quello di
+ * bianco per non spegnere il prodotto nel farlo.
+ */
+const livelli = (() => {
+  if (!process.env.LIVELLI) return "";
+  const [nero, bianco] = process.env.LIVELLI.split(":").map(Number);
+  const canali = ["r", "g", "b"]
+    .map((c) => `${c}imin=${nero}:${c}imax=${bianco ?? 1}`)
+    .join(":");
+  return `,colorlevels=${canali}`;
+})();
+
 const durata = Number(
   execFileSync(FFPROBE, [
     "-v", "error",
@@ -105,7 +132,7 @@ if (UNIFORME) {
   const fps = (FRAMES / durata).toFixed(6);
   execFileSync(FFMPEG, [
     "-v", "error", "-i", video,
-    "-vf", `fps=${fps},${crop}scale=-2:${HEIGHT}`,
+    "-vf", `fps=${fps},${crop}scale=-2:${HEIGHT}${livelli}`,
     "-frames:v", String(FRAMES),
     "-q:v", "4",
     join(OUT, "frame-%03d.jpg"),
@@ -168,7 +195,7 @@ const temporanea = join(tmpdir(), `sequenza-${Date.now()}`);
 mkdirSync(temporanea, { recursive: true });
 execFileSync(FFMPEG, [
   "-v", "error", "-i", video,
-  "-vf", `${crop}scale=-2:${HEIGHT}`,
+  "-vf", `${crop}scale=-2:${HEIGHT}${livelli}`,
   // qualità 4: sotto i 6 gli artefatti si notano sui gradienti del
   // fondo scuro, sopra i 3 il peso cresce senza guadagno visibile.
   "-q:v", "4",

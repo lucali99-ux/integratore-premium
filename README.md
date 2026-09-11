@@ -121,14 +121,45 @@ riempie il canvas — una mask sull'elemento cadrebbe nel punto sbagliato.
 ### Rifare la sequenza di rotazione
 
 ```bash
-# 1. alza il frame rate del sorgente con interpolazione a compensazione di moto
+# 1. il sorgente contiene davvero un giro completo?
+node scripts/verifica-rotazione.mjs assets/rotazione-prodotto.mp4
+
+# 2. alza il frame rate con interpolazione a compensazione di moto
 ffmpeg -i assets/rotazione-prodotto.mp4 \
   -vf "minterpolate=fps=72:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" \
-  -c:v libx264 -crf 16 assets/rotazione-interpolata.mp4
+  -c:v libx264 -crf 16 assets/rotazione-prodotto-interp.mp4
 
-# 2. estrai campionando a cambiamento visivo costante
-node scripts/frames-from-video.mjs assets/rotazione-interpolata.mp4 180 1200 700:1248:482:0
+# 3. riverifica: l'interpolazione non deve aver rotto il movimento
+node scripts/verifica-rotazione.mjs assets/rotazione-prodotto-interp.mp4
+
+# 4. estrai campionando a cambiamento visivo costante, schiacciando il
+#    fondo dello studio al nero della sezione
+LIVELLI=0.30:0.92 node scripts/frames-from-video.mjs \
+  assets/rotazione-prodotto-interp.mp4 180 1000 440:834:336:0
 ```
+
+### Il primo passo non è opzionale
+
+`scripts/verifica-rotazione.mjs` conta i passaggi di taglio misurando la
+larghezza della sagoma fotogramma per fotogramma. Un giro completo ne ha
+**esattamente due**, e tre facce larghe. Il primo video generato ne aveva
+**tre e quattro**: la bustina arrivava a 270° e tornava indietro, quindi i
+fotogrammi fra 180° e 360° non esistevano proprio. Nessun ricampionamento può
+inventarli, e il difetto si vedeva solo scorrendo la pagina.
+
+I modelli video, a cui si chiede «una rotazione completa», tendono a girare
+oltre il mezzo giro e poi invertire. Il prompt che ha funzionato vieta
+l'inversione in modo esplicito e impone il conteggio: *"turning in ONE
+direction only, it must NEVER reverse, the pack passes edge-on EXACTLY
+TWICE"*.
+
+### I livelli
+
+`LIVELLI=nero:bianco` schiaccia il fondo dello studio al nero della sezione.
+Il valore va scelto misurando: sopra il punto più chiaro del **fondo**, sotto
+il punto più scuro del **prodotto**. Su questo sorgente il fondo arrivava a
+80/255 e il prodotto partiva da 136/255, quindi 0.30 (≈76) separa i due senza
+spegnere il prodotto.
 
 Lo script calcola l'fps che distribuisce esattamente 180 fotogrammi sulla
 durata del video: estrarne "a caso" darebbe una rotazione che accelera e

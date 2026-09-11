@@ -39,4 +39,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-assets/rotazione-interpolata.mp4
+assets/rotazione-prodotto-interp.mp4

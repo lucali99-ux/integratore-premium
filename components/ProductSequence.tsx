@@ -13,7 +13,9 @@ import { gsap, ScrollTrigger, useScene } from "@/lib/animation";
  * interpolato a 72fps e poi campionato a cambiamento visivo costante —
  * il video generato dall'IA ruota a velocità irregolare, e campionarlo
  * a tempo produce una rotazione a scatti. Il procedimento completo è
- * documentato in scripts/frames-from-video.mjs.
+ * documentato in scripts/frames-from-video.mjs, e
+ * scripts/verifica-rotazione.mjs controlla che il sorgente contenga
+ * davvero un giro completo prima di estrarre.
  * Se cambi numero di fotogrammi o formato, aggiorna le due costanti
  * qui sotto.
  */
