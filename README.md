@@ -311,6 +311,15 @@ portare gli elementi dove sarebbero finiti. Verificato: con
 `opacity: 0` o `visibility: hidden`, il contatore mostra `87`, e non viene
 creato nessun pin né lo smooth scroll.
 
+**Le card che si girano sono due famiglie.** Ingredienti (fronte fotografico,
+retro con estrazione e funzione) e atleti (fronte ritratto, retro con la
+testimonianza). Condividono le classi `.scheda` in `globals.css`, quindi
+ereditano lo stesso comportamento con `prefers-reduced-motion`: se ne tocchi
+una, controlla l'altra.
+
+Sugli atleti gira **solo la fotografia**: nome e disciplina restano fermi
+sotto, così mentre leggi il commento sai di chi è.
+
 **Le card ingrediente si girano.** Fronte fotografico, retro con estrazione
 in natura e funzione nella formula. Tre cose da non rompere:
 

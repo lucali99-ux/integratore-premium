@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { gsap, SplitText, useScene } from "@/lib/animation";
 import ZigZag from "./ZigZag";
@@ -24,23 +24,46 @@ const ATHLETES = [
     discipline: "crossfit",
     stat: "3ª — italian throwdown 2025",
     image: "/atleti/nadia.jpg",
+    commento:
+      "Il terzo giorno di una settimana pesante non arrivo più con le gambe vuote. Non è che non sento la fatica: la sento dopo.",
+    come: "una la sera, in mezzo litro, appena chiuso il metcon",
+    daQuando: "da febbraio, preparando il throwdown",
   },
   {
     name: "marco bellandi",
     discipline: "boxe",
     stat: "18 incontri in due stagioni",
     image: "/atleti/marco.jpg",
+    commento:
+      "I crampi al polpaccio la notte prima del match sono spariti. Era la cosa che mi mangiava il sonno, e nel taglio peso il sonno è metà del lavoro.",
+    come: "due al giorno in settimana di scarico, una quando non taglio",
+    daQuando: "da un anno e mezzo, me l'ha messa il preparatore",
   },
   {
     name: "elias roth",
     discipline: "hyrox",
     stat: "sub-60 in categoria pro",
     image: "/atleti/elias.jpg",
+    commento:
+      "Recupero meglio fra una stazione e l'altra. Il quarto blocco non è più quello dove perdo tutto quello che ho guadagnato prima.",
+    come: "una al mattino e una subito dopo la sessione lunga",
+    daQuando: "da otto mesi",
   },
 ];
 
 export default function Athletes() {
   const root = useRef<HTMLElement>(null);
+  // Più ritratti possono restare girati insieme: chi confronta due
+  // testimonianze non deve richiudere la prima per aprire la seconda.
+  const [girati, setGirati] = useState<Set<string>>(new Set());
+
+  const gira = (id: string) =>
+    setGirati((precedenti) => {
+      const successivi = new Set(precedenti);
+      if (successivi.has(id)) successivi.delete(id);
+      else successivi.add(id);
+      return successivi;
+    });
 
   useScene(root, {
     full: () => {
@@ -108,35 +131,119 @@ export default function Athletes() {
 
         <ZigZag className="mt-16 text-paper/25 md:mt-24" />
 
-        <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-3">
-          {ATHLETES.map((athlete) => (
-            <article
-              key={athlete.name}
-              data-reveal
-              data-cursor
-              className="group"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden rounded-[1.25rem]">
-                <Image
-                  src={athlete.image}
-                  alt={`${athlete.name}, ${athlete.discipline}`}
-                  fill
-                  sizes="(min-width: 640px) 33vw, 100vw"
-                  className="object-cover grayscale transition-transform duration-[900ms] ease-out group-hover:scale-[1.05]"
-                />
-                {/* Velatura leggera: uniforma i tre scatti e li lega
-                    al nero della sezione. */}
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
-              </div>
+        {/* Due colonne fino a 1024, tre sopra. A tre colonne su 768px
+            ogni card è larga ~230px, e il retro — citazione più due
+            voci — arrivava a riempirla fino ai bordi. */}
+        <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {ATHLETES.map((athlete) => {
+            const girato = girati.has(athlete.name);
 
-              <h3 className="type-display mt-5 text-lead">{athlete.name}</h3>
+            return (
+              <article key={athlete.name} data-reveal>
+                {/*
+                  Gira solo la fotografia: nome e disciplina restano
+                  fermi sotto, così mentre leggi il commento sai sempre
+                  di chi è. Riusa le classi .scheda delle card
+                  ingrediente, quindi eredita anche il comportamento
+                  con prefers-reduced-motion.
+                */}
+                <button
+                  type="button"
+                  data-flipped={girato}
+                  aria-expanded={girato}
+                  aria-label={`Leggi il commento di ${athlete.name}`}
+                  onClick={() => gira(athlete.name)}
+                  className="scheda group relative block aspect-[3/4] w-full text-left"
+                >
+                  <div className="scheda-corpo">
+                    {/* ---------- FRONTE ---------- */}
+                    <div
+                      className="scheda-faccia scheda-fronte"
+                      aria-hidden={girato}
+                      inert={girato}
+                    >
+                      <Image
+                        src={athlete.image}
+                        alt={`${athlete.name}, ${athlete.discipline}`}
+                        fill
+                        sizes="(min-width: 640px) 33vw, 100vw"
+                        className="object-cover grayscale transition-transform duration-[900ms] ease-out group-hover:scale-[1.05]"
+                      />
+                      {/* Velatura leggera: uniforma i tre scatti e li
+                          lega al nero della sezione. */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
 
-              <div className="type-meta mt-2 flex items-baseline justify-between gap-4 text-paper/50">
-                <span>{athlete.discipline}</span>
-                <span className="text-volt">{athlete.stat}</span>
-              </div>
-            </article>
-          ))}
+                      <span
+                        aria-hidden
+                        className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full border border-paper/30 text-paper/70 transition-all duration-500 group-hover:rotate-180 group-hover:border-volt group-hover:text-volt"
+                      >
+                        ↻
+                      </span>
+                    </div>
+
+                    {/* ---------- RETRO ---------- */}
+                    <div
+                      className="scheda-faccia scheda-retro bg-coal"
+                      aria-hidden={!girato}
+                      inert={!girato}
+                    >
+                      <Image
+                        src={athlete.image}
+                        alt=""
+                        fill
+                        sizes="(min-width: 640px) 33vw, 100vw"
+                        className="object-cover opacity-[0.1] grayscale"
+                      />
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 top-0 h-px bg-volt"
+                      />
+
+                      <div className="relative flex h-full flex-col p-6 md:p-7">
+                        <div className="type-meta flex items-baseline justify-between gap-4 text-paper/50">
+                          <span>{athlete.discipline}</span>
+                          <span
+                            aria-hidden
+                            className="text-paper/70 transition-colors group-hover:text-volt"
+                          >
+                            ↺ chiudi
+                          </span>
+                        </div>
+
+                        <blockquote className="mt-auto">
+                          <p className="type-label leading-relaxed text-paper/85">
+                            «{athlete.commento}»
+                          </p>
+                        </blockquote>
+
+                        <dl className="mt-6 space-y-3 border-t border-line-dark pt-5">
+                          <div>
+                            <dt className="type-meta text-volt">come</dt>
+                            <dd className="type-label mt-1 text-paper/65">
+                              {athlete.come}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="type-meta text-volt">da quando</dt>
+                            <dd className="type-label mt-1 text-paper/65">
+                              {athlete.daQuando}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                <h3 className="type-display mt-5 text-lead">{athlete.name}</h3>
+
+                <div className="type-meta mt-2 flex items-baseline justify-between gap-4 text-paper/50">
+                  <span>{athlete.discipline}</span>
+                  <span className="text-volt">{athlete.stat}</span>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
         <p data-reveal className="type-meta mt-10 text-ash">
