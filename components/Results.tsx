@@ -91,22 +91,19 @@ export default function Results() {
       className="relative overflow-hidden bg-paper py-[clamp(6rem,14vh,11rem)]"
       aria-label="Risultati del panel di test"
     >
-      {/* Bustine della gamma che affiorano dallo sfondo.
-          I filtri qui sono più scuri e più saturi di quelli usati
-          nella sezione gamma: là il fondo è nero, qui è chiaro, e le
-          stesse tinte risultavano slavate. */}
+      {/* Bustine della gamma che affiorano dallo sfondo */}
       <FloatingPouch
-        filtro="sepia(1) saturate(3.4) hue-rotate(92deg) brightness(0.58)"
+        src="/gamma/notte.png"
         className="top-[22%] right-[2%] hidden h-[34vh] lg:block"
         rotazione={16}
-        opacita={0.75}
+        opacita={0.85}
       />
       <FloatingPouch
-        filtro="sepia(1) saturate(3.6) hue-rotate(168deg) brightness(0.6)"
+        src="/gamma/idratazione.png"
         className="-left-[3%] bottom-[6%] hidden h-[28vh] lg:block"
         rotazione={-22}
         corsa={70}
-        opacita={0.7}
+        opacita={0.8}
       />
 
       <div className="relative z-10 shell">

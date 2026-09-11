@@ -14,17 +14,18 @@ import { gsap, useScene } from "@/lib/animation";
  * differenza di velocità è ciò che si legge come profondità. È
  * decorativa, quindi `aria-hidden` e fuori dal flusso.
  *
- * Il `filtro` è PROVVISORIO: tinge la bustina bianca in attesa delle
- * fotografie vere delle tre confezioni.
  */
 export default function FloatingPouch({
-  filtro,
+  src,
+  alt = "",
   className = "",
   rotazione = -14,
   corsa = 90,
   opacita = 0.5,
 }: {
-  filtro: string;
+  /** Percorso del PNG scontornato della variante. */
+  src: string;
+  alt?: string;
   className?: string;
   /** Inclinazione fissa, in gradi. */
   rotazione?: number;
@@ -64,14 +65,14 @@ export default function FloatingPouch({
       style={{ willChange: "transform" }}
     >
       <Image
-        src="/product/pouch-cutout.png"
-        alt=""
-        width={305}
+        src={src}
+        alt={alt}
+        width={320}
         height={1050}
         sizes="20vw"
         className="h-full w-auto"
         style={{
-          filter: `${filtro} drop-shadow(-18px 30px 40px rgba(0,0,0,0.35))`,
+          filter: "drop-shadow(-18px 30px 40px rgba(0,0,0,0.35))",
           opacity: opacita,
           transform: `rotate(${rotazione}deg)`,
         }}

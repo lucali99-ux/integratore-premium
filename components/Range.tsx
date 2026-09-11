@@ -38,22 +38,21 @@ const SLANT = 6;
 /**
  * Le tre varianti.
  *
- * Due tonalità per ciascuna: `colore` è la tinta piena, usata per la
- * bustina e l'alone; `chiaro` serve al testo e ai filetti, perché la
- * tinta piena su fondo nero ha un contrasto troppo basso per leggersi.
+ * `colore` è campionato dal corpo della confezione fotografata e serve
+ * all'alone dietro la bustina; `chiaro` è la sua versione schiarita e
+ * serve a testi e filetti, perché la tinta piena su fondo nero ha un
+ * contrasto troppo basso per leggersi.
  *
- * I `filtro` sono PROVVISORI: tingono la bustina bianca in attesa
- * delle fotografie vere delle tre confezioni. La rotazione di tinta
- * parte da circa 47°, che è dove `sepia(1)` porta il bianco: da lì si
- * calcola lo scostamento per arrivare al colore voluto.
+ * Le immagini sono i PNG scontornati delle tre confezioni, ritagliati
+ * al soggetto con scripts/ritaglia-scontorno.mjs.
  */
 const VARIANTI = [
   {
     nome: "notte",
-    colore: "#3f7d4f",
-    chiaro: "#7fd6a0",
-    // verde ~135° = 47 + 88
-    filtro: "sepia(1) saturate(1.9) hue-rotate(92deg) brightness(0.82)",
+    colore: "#9e9d28",
+    chiaro: "#d6d45c",
+    immagine: "/gamma/notte.png",
+    larghezza: 444,
     quando: "la sera, dopo l'ultima sessione",
     formula: "magnesio marino + melissa",
     claim: "chiude la giornata",
@@ -63,10 +62,10 @@ const VARIANTI = [
   },
   {
     nome: "idratazione",
-    colore: "#2f5f9e",
-    chiaro: "#8ab8f5",
-    // blu ~215° = 47 + 168
-    filtro: "sepia(1) saturate(2.8) hue-rotate(168deg) brightness(0.94)",
+    colore: "#244fc1",
+    chiaro: "#8aa6f5",
+    immagine: "/gamma/idratazione.png",
+    larghezza: 322,
     quando: "durante lo sforzo, sopra i 60 minuti",
     formula: "elettroliti + sodio marino",
     claim: "regge la sessione",
@@ -76,11 +75,10 @@ const VARIANTI = [
   },
   {
     nome: "spinta",
-    colore: "#a83a2c",
-    chiaro: "#f59080",
-    // rosso ~355° = 47 − 52. A −18 usciva giallo: lo scostamento
-    // era troppo corto e si fermava sull'arancio.
-    filtro: "sepia(1) saturate(3.6) hue-rotate(-52deg) brightness(0.92)",
+    colore: "#e34035",
+    chiaro: "#ff9084",
+    immagine: "/gamma/spinta.png",
+    larghezza: 273,
     quando: "quaranta minuti prima della gara",
     formula: "rodiola + caffeina da guaranà",
     claim: "apre la gara",
@@ -239,14 +237,14 @@ export default function Range() {
                     style={{ backgroundColor: v.colore }}
                   />
                   <Image
-                    src="/product/pouch-cutout.png"
+                    src={v.immagine}
                     alt={`Bustina volta ${v.nome}`}
-                    width={305}
+                    width={v.larghezza}
                     height={1050}
                     sizes="(min-width: 768px) 24vw, 50vw"
                     className="relative h-[46svh] w-auto md:h-[62svh]"
                     style={{
-                      filter: `${v.filtro} drop-shadow(-24px 40px 55px rgba(0,0,0,0.5))`,
+                      filter: "drop-shadow(-24px 40px 55px rgba(0,0,0,0.5))",
                     }}
                   />
                 </div>

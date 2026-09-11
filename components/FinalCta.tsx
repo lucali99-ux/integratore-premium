@@ -53,7 +53,7 @@ export default function FinalCta() {
       aria-label="Acquista"
     >
       <FloatingPouch
-        filtro="sepia(1) saturate(3.6) hue-rotate(-52deg) brightness(0.92)"
+        src="/gamma/spinta.png"
         className="top-[12%] right-[6%] hidden h-[40vh] lg:block"
         rotazione={13}
         opacita={0.55}

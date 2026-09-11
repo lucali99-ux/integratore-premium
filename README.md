@@ -238,6 +238,35 @@ dedicate, e non vanno marcate `data-reveal`.
 
 ---
 
+## La sezione gamma (scorrimento orizzontale)
+
+`components/Range.tsx`. La sezione si pinna e il binario trasla lateralmente
+mentre si scorre in basso. Cose da non rompere:
+
+- **vale solo da 768px in su.** Su touch uno scrub orizzontale confligge col
+  gesto di scroll nativo e la pagina diventa difficile da governare: lì le
+  slide si impilano. Il ramo è gestito con un `matchMedia` annidato dentro
+  `useScene`, così funziona anche ridimensionando la finestra;
+- **la corsa viene da `scrollWidth`**, non scritta a mano, con
+  `invalidateOnRefresh`: altrimenti su proporzioni diverse l'ultima slide
+  resta tagliata;
+- **la timeline dura 11 unità**: 1 di attesa in cui il binario sta fermo
+  mentre la tenda si apre, 10 di corsa. Senza l'attesa la prima slide non si
+  vede mai ferma e scoperta;
+- **le finestre finiscono di aprirsi quando la loro slide arriva al centro.**
+  Con n slide larghe una viewport il binario percorre n−1 viewport, quindi la
+  slide i è centrata a `(i / (n−1)) * 10`. Dividendo la timeline in parti
+  uguali — com'era in prima stesura — la finestra della seconda slide era
+  aperta solo al 37% nel momento in cui la leggevi.
+
+Gli asset delle tre confezioni stanno in `public/gamma/`, scontornati e
+ritagliati al soggetto con `scripts/ritaglia-scontorno.mjs`. Il `colore` di
+ogni variante è campionato dal corpo della confezione; `chiaro` è la versione
+schiarita, necessaria perché la tinta piena su fondo nero non ha contrasto
+sufficiente per il testo.
+
+---
+
 ## Regole del sistema
 
 **Un solo momento animato forte per sezione.** Se ne aggiungi uno, toglierne
