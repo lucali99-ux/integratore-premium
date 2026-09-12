@@ -99,8 +99,13 @@ export default function CustomCursor() {
 
     // Il punto quasi non ha ritardo, l'anello sì: lo scarto fra i due
     // è ciò che si legge come inerzia.
-    const ringX = gsap.quickTo(ring, "x", { duration: 0.45, ease: "power3" });
-    const ringY = gsap.quickTo(ring, "y", { duration: 0.45, ease: "power3" });
+    // Misurato: a duration 0.45 l'anello impiegava ~420ms a
+    // stabilizzarsi dopo uno scatto del mouse — percepibile come
+    // lento. Dimezzato a 0.22: resta un'inerzia visibile (il punto,
+    // a 0.08, arriva sempre per primo), ma il ritardo non si sente
+    // più come latenza.
+    const ringX = gsap.quickTo(ring, "x", { duration: 0.22, ease: "power3" });
+    const ringY = gsap.quickTo(ring, "y", { duration: 0.22, ease: "power3" });
     const dotX = gsap.quickTo(dot, "x", { duration: 0.08, ease: "none" });
     const dotY = gsap.quickTo(dot, "y", { duration: 0.08, ease: "none" });
 

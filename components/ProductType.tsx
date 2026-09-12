@@ -76,7 +76,15 @@ export default function ProductType() {
             aria-hidden
             width={305}
             height={1050}
-            className="pointer-events-none absolute top-1/2 right-[2%] z-10 h-[42vh] w-auto max-w-none -translate-y-1/2 md:right-[8%] md:h-[74vh]"
+            // Su mobile ancorato al FONDO del titolo, non al centro:
+            // a 42vh (354px) contro un titolo alto 155px, il centraggio
+            // verticale lo faceva sconfinare 263px oltre la fine del
+            // titolo, dentro il paragrafo sottostante — misurato, non
+            // solo la "a" di bustina, tutto il paragrafo. Ancorato al
+            // fondo e ridotto a 24vh resta contenuto sull'ultima riga
+            // ("bustina"), che è l'unica che deve attraversare su
+            // schermi stretti.
+            className="pointer-events-none absolute right-[2%] bottom-0 z-10 h-[24vh] w-auto max-w-none md:top-1/2 md:right-[8%] md:bottom-auto md:h-[74vh] md:-translate-y-1/2"
             style={{
               willChange: "transform",
               filter: "drop-shadow(-30px 40px 60px rgba(11,11,11,0.28))",

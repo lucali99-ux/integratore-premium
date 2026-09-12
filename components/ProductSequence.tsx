@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { gsap, ScrollTrigger, useScene } from "@/lib/animation";
 
 /**
@@ -285,7 +285,27 @@ export default function ProductSequence() {
   }, [draw, costruisciVignettatura]);
 
   // --- Caricamento pigro, a passate successive ---------------------
-  useEffect(() => {
+  //
+  // `useLayoutEffect`, non `useEffect`, e non per timing sullo schermo
+  // (nessun contenuto visivo dipende da questo prima del paint), ma per
+  // GARANZIA D'ORDINE. `useScene` usa `useGSAP`, che internamente è un
+  // layout effect: React esegue TUTTI i layout effect di un componente
+  // prima di QUALSIASI effect normale, indipendentemente dall'ordine
+  // nel codice sorgente. `full()`, sotto, legge `sequence.current` in
+  // modo sincrono per calcolare l'ultimo fotogramma: se quella lettura
+  // sta in un effect normale, viene esattamente per costruzione DOPO
+  // che GSAP ha già creato il tween.
+  //
+  // Bug reale misurato: `sequence.current` era vuoto in quel momento,
+  // quindi `last = sequence.current.length - 1` valeva -1, e il canvas
+  // restava bloccato sul fotogramma 0 per l'intera sezione — la
+  // rotazione non partiva mai. Funzionava per caso in sviluppo: lo
+  // Strict Mode monta due volte, il primo montaggio (poi scartato)
+  // scriveva comunque `sequence.current` — i ref sopravvivono allo
+  // smontaggio fittizio — e il secondo montaggio, quello vero, lo
+  // trovava già pieno. In produzione il montaggio è uno solo, l'ordine
+  // vero emerge, e il bug si vede sempre.
+  useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
 
